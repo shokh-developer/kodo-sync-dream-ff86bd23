@@ -70,6 +70,13 @@ const getFileIcon = (name: string, language: string) => {
       return <Terminal className="h-4 w-4 text-green-400" />;
     case "md":
       return <FileText className="h-4 w-4 text-gray-400" />;
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "c":
+    case "h":
+    case "hpp":
+      return <FileCode className="h-4 w-4 text-blue-500" />;
     default:
       return <File className="h-4 w-4 text-muted-foreground" />;
   }
@@ -97,6 +104,15 @@ const getLanguageFromName = (name: string): string => {
       return "markdown";
     case "sql":
       return "sql";
+    case "cpp":
+    case "cc":
+    case "cxx":
+      return "cpp";
+    case "c":
+      return "c";
+    case "h":
+    case "hpp":
+      return "cpp";
     default:
       return "plaintext";
   }

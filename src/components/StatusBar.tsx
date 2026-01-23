@@ -26,6 +26,9 @@ const getLanguageIcon = (language: string) => {
       return <Terminal className={cn(iconClass, "text-green-400")} />;
     case "markdown":
       return <FileText className={cn(iconClass, "text-gray-400")} />;
+    case "cpp":
+    case "c":
+      return <FileCode className={cn(iconClass, "text-blue-500")} />;
     default:
       return <File className={cn(iconClass, "text-muted-foreground")} />;
   }

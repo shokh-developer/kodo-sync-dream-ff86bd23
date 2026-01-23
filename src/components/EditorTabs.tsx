@@ -37,6 +37,13 @@ const getFileIcon = (name: string) => {
       return <Terminal className={cn(iconClass, "text-green-400")} />;
     case "md":
       return <FileText className={cn(iconClass, "text-gray-400")} />;
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "c":
+    case "h":
+    case "hpp":
+      return <FileCode className={cn(iconClass, "text-blue-500")} />;
     default:
       return <File className={cn(iconClass, "text-muted-foreground")} />;
   }
