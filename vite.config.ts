@@ -3,19 +3,25 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
+// Render.com uchun tayyor vite.config.js
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: true, // hamma xostlar uchun ruxsat
+    port: process.env.PORT ? Number(process.env.PORT) : 5173, // Render portni env orqali beradi
     hmr: {
-      overlay: false,
+      overlay: false, // development warning overlay’ini o‘chiradi
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger() // faqat dev mode uchun
+  ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./src"), // @ -> src papkasi
     },
+  },
+  build: {
+    outDir: "dist", // production build papkasi
   },
 }));
