@@ -5,7 +5,7 @@ import { MangaButton } from "@/components/MangaButton";
 import { MangaCard } from "@/components/MangaCard";
 import { Input } from "@/components/ui/input";
 import { createRoom } from "@/hooks/useFiles";
-import { Code, Users, Zap, Sparkles, ArrowRight, Plus, LogIn } from "lucide-react";
+import { Code, Users, Zap, Sparkles, ArrowRight, Plus, LogIn, Flame, Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -49,14 +49,21 @@ const Index = () => {
       });
       return;
     }
-    navigate(`/room/${joinRoomId}`);
+    
+    // Extract ID from URL if full link is pasted
+    let roomId = joinRoomId.trim();
+    if (roomId.includes("/room/")) {
+      roomId = roomId.split("/room/").pop() || roomId;
+    }
+    
+    navigate(`/room/${roomId}`);
   };
 
   const features = [
     {
       icon: Code,
-      title: "Ko'p Tillar",
-      description: "JavaScript, TypeScript, Python, HTML, CSS va boshqalar",
+      title: "10+ Tillar",
+      description: "C++, Python, JavaScript, Java, Go, Rust, TypeScript va boshqalar",
       color: "pink" as const,
     },
     {
@@ -66,9 +73,9 @@ const Index = () => {
       color: "blue" as const,
     },
     {
-      icon: Zap,
-      title: "Tezkor Sinxronizatsiya",
-      description: "O'zgarishlar bir zumda ko'rinadi",
+      icon: Terminal,
+      title: "Kod Ishga Tushirish",
+      description: "Kodni to'g'ridan-to'g'ri brauzerda run qiling",
       color: "green" as const,
     },
   ];
@@ -96,15 +103,28 @@ const Index = () => {
             </span>
           </motion.div>
           
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-orbitron font-bold mb-6">
-            <span className="text-gradient-manga">MANGA</span>
-            <br />
-            <span className="text-foreground">CODE</span>
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <motion.div
+              initial={{ rotate: -10, scale: 0 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ delay: 0.3, type: "spring" }}
+            >
+              <Flame className="h-12 w-12 md:h-16 md:w-16 text-primary" />
+            </motion.div>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-orbitron font-bold">
+              <span className="text-gradient-manga">CODE</span>
+              <span className="text-foreground">FORGE</span>
+            </h1>
+          </div>
           
-          <p className="text-lg md:text-xl text-muted-foreground font-rajdhani max-w-2xl mx-auto">
-            Do'stlaringiz bilan real-time rejimda kod yozing. 
-            Bir xil fayl, bir xil kod, bir xil vaqt!
+          <p className="text-lg text-muted-foreground font-rajdhani mb-2">
+            by <span className="text-primary font-semibold">shokh</span>
+          </p>
+          
+          <p className="text-base md:text-lg text-muted-foreground font-rajdhani max-w-2xl mx-auto">
+            Do'stlaringiz bilan real-time rejimda kod yozing va ishga tushiring. 
+            <br className="hidden md:block" />
+            C++, Python, JavaScript va 10+ til!
           </p>
         </motion.header>
 
@@ -159,11 +179,11 @@ const Index = () => {
               </div>
               
               <p className="text-muted-foreground font-rajdhani">
-                Mavjud xonaga xona ID orqali qo'shiling
+                Mavjud xonaga xona ID yoki link orqali qo'shiling
               </p>
               
               <Input
-                placeholder="Xona ID yoki link..."
+                placeholder="Xona ID yoki to'liq link..."
                 value={joinRoomId}
                 onChange={(e) => setJoinRoomId(e.target.value)}
                 className="bg-cyber-dark border-border text-foreground placeholder:text-muted-foreground font-rajdhani"
@@ -208,13 +228,39 @@ const Index = () => {
             </MangaCard>
           ))}
         </motion.div>
+
+        {/* Supported Languages */}
+        <motion.div
+          className="mt-16 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <p className="text-sm text-muted-foreground font-rajdhani mb-4">
+            Qo'llab-quvvatlanadigan tillar:
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+            {["C++", "Python", "JavaScript", "TypeScript", "Java", "Go", "Rust", "PHP", "Ruby", "C#", "C"].map((lang) => (
+              <span
+                key={lang}
+                className="px-3 py-1 text-xs font-mono rounded-full bg-muted/50 text-muted-foreground border border-border hover:border-primary hover:text-primary transition-colors cursor-default"
+              >
+                {lang}
+              </span>
+            ))}
+          </div>
+        </motion.div>
       </div>
 
       {/* Footer */}
       <footer className="border-t border-border py-8 mt-20">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground font-rajdhani">
-            Powered by <span className="text-primary font-semibold">MangaCode</span> — 
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Flame className="h-5 w-5 text-primary" />
+            <span className="font-orbitron font-bold text-foreground">CodeForge</span>
+          </div>
+          <p className="text-muted-foreground font-rajdhani text-sm">
+            by <span className="text-primary font-semibold">shokh</span> — 
             Real-time collaborative coding platform
           </p>
         </div>

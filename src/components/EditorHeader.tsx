@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, Copy, Check, Wifi, Share2, Hash } from "lucide-react";
+import { Users, Copy, Check, Wifi, Share2, Hash, Flame } from "lucide-react";
 import { MangaButton } from "./MangaButton";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -48,8 +48,19 @@ const EditorHeader = ({
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-center gap-4">
+        {/* Brand */}
+        <div className="flex items-center gap-2">
+          <Flame className="h-5 w-5 text-primary" />
+          <span className="text-sm font-orbitron font-bold text-primary hidden lg:inline">
+            CodeForge
+          </span>
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-6 bg-border hidden md:block" />
+
         {/* Room Name */}
-        <h1 className="text-lg font-orbitron font-bold text-gradient-manga">
+        <h1 className="text-base font-orbitron font-bold text-foreground">
           {roomName}
         </h1>
 
@@ -68,8 +79,8 @@ const EditorHeader = ({
         {/* Active File */}
         {activeFileName && (
           <>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm text-foreground font-rajdhani">
+            <span className="text-muted-foreground hidden md:inline">/</span>
+            <span className="text-sm text-accent font-rajdhani font-medium hidden md:inline">
               {activeFileName}
             </span>
           </>
@@ -80,7 +91,7 @@ const EditorHeader = ({
         {/* Sync status */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="hidden md:inline">Sinxronlangan</span>
+          <span className="hidden lg:inline">Sinxron</span>
         </div>
 
         {/* Online users indicator */}
