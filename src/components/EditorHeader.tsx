@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, Copy, Check, Wifi, Settings, Share2 } from "lucide-react";
+import { Users, Copy, Check, Wifi, Share2, Hash } from "lucide-react";
 import { MangaButton } from "./MangaButton";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,8 @@ const EditorHeader = ({
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  const shortId = roomId.slice(0, 8);
+
   const copyRoomLink = async () => {
     const link = `${window.location.origin}/room/${roomId}`;
     await navigator.clipboard.writeText(link);
@@ -31,6 +33,14 @@ const EditorHeader = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyRoomId = async () => {
+    await navigator.clipboard.writeText(roomId);
+    toast({
+      title: "ID nusxalandi!",
+      description: roomId,
+    });
+  };
+
   return (
     <motion.div
       className="flex items-center justify-between h-12 px-4 bg-cyber-mid border-b border-border"
@@ -38,17 +48,41 @@ const EditorHeader = ({
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-center gap-4">
+        {/* Room Name */}
         <h1 className="text-lg font-orbitron font-bold text-gradient-manga">
           {roomName}
         </h1>
-        {activeFileName && (
-          <span className="text-sm text-muted-foreground font-rajdhani">
-            / {activeFileName}
+
+        {/* Room ID */}
+        <button
+          onClick={copyRoomId}
+          className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted/50 hover:bg-muted transition-colors group"
+          title="ID ni nusxalash uchun bosing"
+        >
+          <Hash className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+          <span className="text-xs text-muted-foreground group-hover:text-foreground font-mono">
+            {shortId}
           </span>
+        </button>
+
+        {/* Active File */}
+        {activeFileName && (
+          <>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-sm text-foreground font-rajdhani">
+              {activeFileName}
+            </span>
+          </>
         )}
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Sync status */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <span className="hidden md:inline">Sinxronlangan</span>
+        </div>
+
         {/* Online users indicator */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 border border-accent/50">
           <Wifi className="h-3.5 w-3.5 text-accent animate-pulse" />
@@ -63,7 +97,7 @@ const EditorHeader = ({
           ) : (
             <Share2 className="h-4 w-4" />
           )}
-          {copied ? "Nusxalandi!" : "Ulashish"}
+          <span className="hidden md:inline">{copied ? "Nusxalandi!" : "Ulashish"}</span>
         </MangaButton>
       </div>
     </motion.div>

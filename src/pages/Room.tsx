@@ -7,9 +7,10 @@ import EditorTabs from "@/components/EditorTabs";
 import EditorHeader from "@/components/EditorHeader";
 import EditorWelcome from "@/components/EditorWelcome";
 import StatusBar from "@/components/StatusBar";
+import Terminal from "@/components/Terminal";
 import { MangaButton } from "@/components/MangaButton";
 import { ArrowLeft, Loader2, PanelLeftClose, PanelLeft } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { debounce } from "@/lib/utils";
 
 const Room = () => {
@@ -29,7 +30,15 @@ const Room = () => {
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const [localContent, setLocalContent] = useState("");
+
+  // Sync local content with active file when it changes from realtime updates
+  useEffect(() => {
+    if (activeFile && activeFile.content !== localContent) {
+      setLocalContent(activeFile.content);
+    }
+  }, [activeFile?.content]);
 
   // Sync local content with active file
   const handleFileSelect = (file: typeof activeFile) => {
@@ -210,6 +219,14 @@ const Room = () => {
               <EditorWelcome />
             )}
           </div>
+
+          {/* Terminal */}
+          <Terminal
+            isOpen={terminalOpen}
+            onToggle={() => setTerminalOpen(!terminalOpen)}
+            code={localContent}
+            language={activeFile?.language || "javascript"}
+          />
 
           {/* Status bar */}
           <StatusBar
