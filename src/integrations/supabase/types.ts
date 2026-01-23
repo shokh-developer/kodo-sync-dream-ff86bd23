@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      files: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_folder: boolean
+          language: string
+          name: string
+          path: string
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_folder?: boolean
+          language?: string
+          name: string
+          path?: string
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_folder?: boolean
+          language?: string
+          name?: string
+          path?: string
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           code: string

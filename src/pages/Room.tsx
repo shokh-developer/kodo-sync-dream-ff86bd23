@@ -1,37 +1,94 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useRoom } from "@/hooks/useRoom";
+import { useRoom, useFiles } from "@/hooks/useFiles";
 import CodeEditor from "@/components/CodeEditor";
-import RoomHeader from "@/components/RoomHeader";
+import FileExplorer from "@/components/FileExplorer";
+import EditorTabs from "@/components/EditorTabs";
+import EditorHeader from "@/components/EditorHeader";
+import EditorWelcome from "@/components/EditorWelcome";
+import StatusBar from "@/components/StatusBar";
 import { MangaButton } from "@/components/MangaButton";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { ArrowLeft, Loader2, PanelLeftClose, PanelLeft } from "lucide-react";
+import { useState, useCallback } from "react";
 import { debounce } from "@/lib/utils";
 
 const Room = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { room, loading, error, updateCode, updateLanguage } = useRoom(id || null);
-  const [localCode, setLocalCode] = useState("");
+  const { room, loading: roomLoading, error } = useRoom(id || null);
+  const {
+    files,
+    activeFile,
+    setActiveFile,
+    loading: filesLoading,
+    createFile,
+    updateFileContent,
+    deleteFile,
+    renameFile,
+  } = useFiles(id || null);
 
-  useEffect(() => {
-    if (room?.code !== undefined && room.code !== localCode) {
-      setLocalCode(room.code);
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [localContent, setLocalContent] = useState("");
+
+  // Sync local content with active file
+  const handleFileSelect = (file: typeof activeFile) => {
+    if (!file || file.is_folder) return;
+    setActiveFile(file);
+    setLocalContent(file.content);
+    
+    if (!openTabs.includes(file.id)) {
+      setOpenTabs(prev => [...prev, file.id]);
     }
-  }, [room?.code]);
+  };
 
-  // Debounced update to prevent too many writes
-  const debouncedUpdateCode = useCallback(
-    debounce((newCode: string) => {
-      updateCode(newCode);
+  // Debounced save
+  const debouncedSave = useCallback(
+    debounce((fileId: string, content: string) => {
+      updateFileContent(fileId, content);
     }, 500),
-    [updateCode]
+    [updateFileContent]
   );
 
-  const handleCodeChange = (newCode: string) => {
-    setLocalCode(newCode);
-    debouncedUpdateCode(newCode);
+  const handleCodeChange = (newContent: string) => {
+    setLocalContent(newContent);
+    if (activeFile) {
+      debouncedSave(activeFile.id, newContent);
+    }
   };
+
+  const handleTabClose = (tabId: string) => {
+    setOpenTabs(prev => prev.filter(id => id !== tabId));
+    if (activeFile?.id === tabId) {
+      const remaining = openTabs.filter(id => id !== tabId);
+      if (remaining.length > 0) {
+        const nextFile = files.find(f => f.id === remaining[remaining.length - 1]);
+        if (nextFile) {
+          setActiveFile(nextFile);
+          setLocalContent(nextFile.content);
+        }
+      } else {
+        setActiveFile(null);
+      }
+    }
+  };
+
+  const handleTabSelect = (tabId: string) => {
+    const file = files.find(f => f.id === tabId);
+    if (file) {
+      setActiveFile(file);
+      setLocalContent(file.content);
+    }
+  };
+
+  const handleCreateFile = async (name: string, path: string, isFolder: boolean, language?: string) => {
+    const newFile = await createFile(name, path, isFolder, language);
+    if (newFile && !isFolder) {
+      handleFileSelect(newFile);
+    }
+  };
+
+  const loading = roomLoading || filesLoading;
 
   if (loading) {
     return (
@@ -73,54 +130,93 @@ const Room = () => {
     );
   }
 
+  const openTabFiles = files.filter(f => openTabs.includes(f.id));
+
   return (
-    <div className="min-h-screen bg-gradient-cyber flex flex-col">
+    <div className="h-screen flex flex-col bg-gradient-cyber overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4 p-2 bg-cyber-dark border-b border-border">
+      <div className="flex items-center bg-cyber-dark border-b border-border">
         <MangaButton
           variant="ghost"
           size="icon"
           onClick={() => navigate("/")}
+          className="h-12 w-12 rounded-none border-r border-border"
         >
           <ArrowLeft className="h-5 w-5" />
         </MangaButton>
+        
+        <MangaButton
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-12 w-12 rounded-none border-r border-border"
+        >
+          {sidebarOpen ? (
+            <PanelLeftClose className="h-5 w-5" />
+          ) : (
+            <PanelLeft className="h-5 w-5" />
+          )}
+        </MangaButton>
+        
         <div className="flex-1">
-          <RoomHeader
+          <EditorHeader
             roomId={room.id}
             roomName={room.name}
-            language={room.language}
-            onLanguageChange={updateLanguage}
+            activeFileName={activeFile?.name}
           />
         </div>
       </div>
 
-      {/* Editor */}
-      <motion.div
-        className="flex-1 p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="h-full manga-panel rounded-xl overflow-hidden">
-          <CodeEditor
-            code={localCode}
-            language={room.language}
-            onChange={handleCodeChange}
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <motion.div
+          className="overflow-hidden"
+          initial={false}
+          animate={{ width: sidebarOpen ? 260 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="w-[260px] h-full">
+            <FileExplorer
+              files={files}
+              activeFileId={activeFile?.id || null}
+              onFileSelect={handleFileSelect}
+              onCreateFile={handleCreateFile}
+              onDeleteFile={deleteFile}
+              onRenameFile={renameFile}
+            />
+          </div>
+        </motion.div>
+
+        {/* Editor area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Tabs */}
+          <EditorTabs
+            tabs={openTabFiles.map(f => ({ id: f.id, name: f.name, language: f.language }))}
+            activeTabId={activeFile?.id || null}
+            onTabSelect={handleTabSelect}
+            onTabClose={handleTabClose}
+          />
+
+          {/* Editor */}
+          <div className="flex-1 overflow-hidden">
+            {activeFile ? (
+              <CodeEditor
+                code={localContent}
+                language={activeFile.language}
+                onChange={handleCodeChange}
+              />
+            ) : (
+              <EditorWelcome />
+            )}
+          </div>
+
+          {/* Status bar */}
+          <StatusBar
+            language={activeFile?.language || "plaintext"}
+            fileName={activeFile?.name}
           />
         </div>
-      </motion.div>
-
-      {/* Footer */}
-      <div className="p-3 bg-cyber-dark border-t border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-sm text-muted-foreground font-rajdhani">
-            Real-time sinxronizatsiya faol
-          </span>
-        </div>
-        <span className="text-sm text-muted-foreground font-rajdhani">
-          Til: <span className="text-primary font-medium">{room.language}</span>
-        </span>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { MangaButton } from "@/components/MangaButton";
 import { MangaCard } from "@/components/MangaCard";
 import { Input } from "@/components/ui/input";
-import { createRoom } from "@/hooks/useRoom";
+import { createRoom } from "@/hooks/useFiles";
 import { Code, Users, Zap, Sparkles, ArrowRight, Plus, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
