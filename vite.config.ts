@@ -1,8 +1,7 @@
-# Terminalda:
-# 1. TypeScript config ni JavaScript ga o'zgartirish:
-mv vite.config.ts vite.config.js
+# 1. Buzilgan config ni o'chiring:
+rm vite.config.ts
 
-# 2. Yangi vite.config.js yaratish:
+# 2. Yangi JavaScript config yarating:
 cat > vite.config.js << 'EOF'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
