@@ -2,11 +2,13 @@
   "name": "codeforge",
   "version": "1.0.0",
   "scripts": {
-    "build": "npm install vite && vite build",
-    "start": "vite preview --port 3000"
+    "build": "npm install @vitejs/plugin-react-swc && vite build",
+    "start": "vite preview --port $PORT"
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.19",
+    "@vitejs/plugin-react-swc": "^3.11.0"
   }
 }
