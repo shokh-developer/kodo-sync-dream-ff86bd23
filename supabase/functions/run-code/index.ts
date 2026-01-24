@@ -30,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { code, language } = await req.json();
+    const { code, language, stdin } = await req.json();
 
     if (!code || !language) {
       return new Response(
@@ -51,7 +51,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Executing ${language} code...`);
+    console.log(`Executing ${language} code with stdin: ${stdin ? 'yes' : 'no'}`);
 
     // Call Piston API
     const response = await fetch(PISTON_API, {
@@ -68,7 +68,7 @@ serve(async (req) => {
             content: code,
           },
         ],
-        stdin: "",
+        stdin: stdin || "",
         args: [],
         compile_timeout: 10000,
         run_timeout: 5000,

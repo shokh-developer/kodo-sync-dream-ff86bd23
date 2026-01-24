@@ -1,9 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Trash2, Terminal as TerminalIcon, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { Play, Trash2, Terminal as TerminalIcon, ChevronUp, ChevronDown, Loader2, Keyboard } from "lucide-react";
 import { MangaButton } from "./MangaButton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface TerminalProps {
   isOpen: boolean;
@@ -24,9 +33,14 @@ const browserLanguages = ["javascript", "html"];
 // Languages supported by backend
 const backendLanguages = ["javascript", "typescript", "python", "cpp", "c", "java", "go", "rust", "php", "ruby", "csharp"];
 
+// Languages that typically need input
+const inputLanguages = ["cpp", "c", "python", "java", "go", "rust", "csharp"];
+
 const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [showInputDialog, setShowInputDialog] = useState(false);
+  const [stdinInput, setStdinInput] = useState("");
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +51,20 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
 
   const addLog = (type: LogEntry["type"], content: string) => {
     setLogs((prev) => [...prev, { type, content, timestamp: new Date() }]);
+  };
+
+  // Check if code contains input functions
+  const codeNeedsInput = () => {
+    if (language === "cpp" || language === "c") {
+      return /\b(cin|scanf|gets|getline|getchar)\b/.test(code);
+    }
+    if (language === "python") {
+      return /\binput\s*\(/.test(code);
+    }
+    if (language === "java") {
+      return /\bScanner\b/.test(code);
+    }
+    return false;
   };
 
   const runCodeInBrowser = () => {
@@ -53,7 +81,6 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
       }
 
       // JavaScript
-      const originalConsole = { ...console };
       const customConsole = {
         log: (...args: any[]) => addLog("log", args.map(formatValue).join(" ")),
         error: (...args: any[]) => addLog("error", args.map(formatValue).join(" ")),
@@ -73,19 +100,20 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
       } catch (err: any) {
         addLog("error", `❌ Xatolik: ${err.message}`);
       }
-
-      Object.assign(console, originalConsole);
     } catch (err: any) {
       addLog("error", `❌ Xatolik: ${err.message}`);
     }
   };
 
-  const runCodeOnServer = async () => {
+  const runCodeOnServer = async (stdin: string = "") => {
     try {
       addLog("info", `🚀 ${language.toUpperCase()} kodi serverda ishga tushirilmoqda...`);
+      if (stdin) {
+        addLog("info", `📥 Input: ${stdin.split('\n').join(', ')}`);
+      }
 
       const { data, error } = await supabase.functions.invoke("run-code", {
-        body: { code, language },
+        body: { code, language, stdin },
       });
 
       if (error) {
@@ -127,7 +155,22 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
     }
   };
 
-  const runCode = async () => {
+  const handleRunClick = () => {
+    // Check if code needs input
+    if (inputLanguages.includes(language) && codeNeedsInput()) {
+      setShowInputDialog(true);
+    } else {
+      runCode("");
+    }
+  };
+
+  const handleRunWithInput = () => {
+    setShowInputDialog(false);
+    runCode(stdinInput);
+    setStdinInput("");
+  };
+
+  const runCode = async (stdin: string) => {
     setIsRunning(true);
     clearLogs();
     addLog("info", `▶ ${language.toUpperCase()} kodi ishga tushirilmoqda...`);
@@ -136,7 +179,7 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
       if (browserLanguages.includes(language)) {
         runCodeInBrowser();
       } else if (backendLanguages.includes(language)) {
-        await runCodeOnServer();
+        await runCodeOnServer(stdin);
       } else {
         addLog("error", `❌ ${language.toUpperCase()} tili hozircha qo'llab-quvvatlanmaydi.`);
         addLog("info", `ℹ️ Qo'llab-quvvatlanadigan tillar: ${backendLanguages.join(", ")}`);
@@ -176,138 +219,177 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
     }
   };
 
-  const getLogIcon = (type: LogEntry["type"]) => {
-    switch (type) {
-      case "error":
-        return "❌";
-      case "warn":
-        return "⚠️";
-      case "info":
-        return "ℹ️";
-      case "result":
-        return "→";
-      case "compile":
-        return "⚙️";
-      default:
-        return "›";
-    }
-  };
-
   return (
-    <div className="border-t-2 border-primary/30">
-      {/* Terminal Header */}
-      <div
-        className="flex items-center justify-between px-4 py-2 bg-cyber-dark cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-3">
-          <TerminalIcon className="h-4 w-4 text-primary" />
-          <span className="text-sm font-orbitron text-foreground tracking-wider">TERMINAL</span>
-          {logs.length > 0 && (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary font-mono">
-              {logs.length}
-            </span>
-          )}
-          <span className="text-xs text-muted-foreground font-rajdhani px-2 py-0.5 rounded bg-muted/50">
-            {language.toUpperCase()}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <MangaButton
-            variant="accent"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              runCode();
-            }}
-            disabled={isRunning || !code.trim()}
-            className="h-7 px-4 font-orbitron"
-          >
-            {isRunning ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Play className="h-3.5 w-3.5" />
+    <>
+      <div className="border-t-2 border-primary/30">
+        {/* Terminal Header */}
+        <div
+          className="flex items-center justify-between px-4 py-2 bg-cyber-dark cursor-pointer hover:bg-muted/30 transition-colors"
+          onClick={onToggle}
+        >
+          <div className="flex items-center gap-3">
+            <TerminalIcon className="h-4 w-4 text-primary" />
+            <span className="text-sm font-orbitron text-foreground tracking-wider">TERMINAL</span>
+            {logs.length > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary font-mono">
+                {logs.length}
+              </span>
             )}
-            {isRunning ? "Ishlamoqda..." : "RUN"}
-          </MangaButton>
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          )}
+            <span className="text-xs text-muted-foreground font-rajdhani px-2 py-0.5 rounded bg-muted/50">
+              {language.toUpperCase()}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Input hint for languages that need it */}
+            {inputLanguages.includes(language) && codeNeedsInput() && (
+              <span className="text-xs text-accent flex items-center gap-1">
+                <Keyboard className="h-3 w-3" />
+                Input kerak
+              </span>
+            )}
+            <MangaButton
+              variant="accent"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRunClick();
+              }}
+              disabled={isRunning || !code.trim()}
+              className="h-7 px-4 font-orbitron"
+            >
+              {isRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+              {isRunning ? "Ishlamoqda..." : "RUN"}
+            </MangaButton>
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
+
+        {/* Terminal Content */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 220 }}
+              exit={{ height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="h-[220px] flex flex-col bg-[#0d0d0d]">
+                {/* Toolbar */}
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-cyber-dark">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                    </div>
+                    <span className="text-xs text-muted-foreground font-mono ml-2">
+                      output
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearLogs();
+                    }}
+                    className="p-1.5 rounded hover:bg-muted/50 transition-colors group"
+                    title="Tozalash"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
+                  </button>
+                </div>
+
+                {/* Logs */}
+                <div className="flex-1 overflow-y-auto p-3 font-mono text-sm space-y-1">
+                  {logs.length === 0 ? (
+                    <div className="text-muted-foreground text-center py-8">
+                      <TerminalIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-rajdhani text-base">Kodni ishga tushirish uchun</p>
+                      <p className="text-primary font-orbitron mt-1">"RUN" tugmasini bosing</p>
+                      <p className="text-xs mt-3 opacity-60">
+                        C++, Python, JavaScript, TypeScript, Java, Go, Rust...
+                      </p>
+                    </div>
+                  ) : (
+                    logs.map((log, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={cn("flex gap-2 py-0.5", getLogColor(log.type))}
+                      >
+                        <span className="text-muted-foreground/50 text-xs w-16 flex-shrink-0">
+                          {log.timestamp.toLocaleTimeString()}
+                        </span>
+                        <pre className="whitespace-pre-wrap break-all flex-1 leading-relaxed">
+                          {log.content}
+                        </pre>
+                      </motion.div>
+                    ))
+                  )}
+                  <div ref={logsEndRef} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Terminal Content */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 220 }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="h-[220px] flex flex-col bg-[#0d0d0d]">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-cyber-dark">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  </div>
-                  <span className="text-xs text-muted-foreground font-mono ml-2">
-                    output
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearLogs();
-                  }}
-                  className="p-1.5 rounded hover:bg-muted/50 transition-colors group"
-                  title="Tozalash"
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
-                </button>
-              </div>
-
-              {/* Logs */}
-              <div className="flex-1 overflow-y-auto p-3 font-mono text-sm space-y-1">
-                {logs.length === 0 ? (
-                  <div className="text-muted-foreground text-center py-8">
-                    <TerminalIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                    <p className="font-rajdhani text-base">Kodni ishga tushirish uchun</p>
-                    <p className="text-primary font-orbitron mt-1">"RUN" tugmasini bosing</p>
-                    <p className="text-xs mt-3 opacity-60">
-                      C++, Python, JavaScript, TypeScript, Java, Go, Rust...
-                    </p>
-                  </div>
-                ) : (
-                  logs.map((log, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={cn("flex gap-2 py-0.5", getLogColor(log.type))}
-                    >
-                      <span className="text-muted-foreground/50 text-xs w-16 flex-shrink-0">
-                        {log.timestamp.toLocaleTimeString()}
-                      </span>
-                      <pre className="whitespace-pre-wrap break-all flex-1 leading-relaxed">
-                        {log.content}
-                      </pre>
-                    </motion.div>
-                  ))
-                )}
-                <div ref={logsEndRef} />
-              </div>
+      {/* Input Dialog */}
+      <Dialog open={showInputDialog} onOpenChange={setShowInputDialog}>
+        <DialogContent className="bg-cyber-dark border-primary/30">
+          <DialogHeader>
+            <DialogTitle className="font-orbitron text-primary flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              Dastur uchun input kiriting
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground font-rajdhani">
+              Sizning kodingizda <code className="text-accent">cin</code>, <code className="text-accent">input()</code> yoki boshqa kiritish funksiyalari bor. 
+              Har bir qiymatni yangi qatorga yozing.
+            </p>
+            <Textarea
+              placeholder="Masalan:&#10;5&#10;10&#10;hello"
+              value={stdinInput}
+              onChange={(e) => setStdinInput(e.target.value)}
+              className="min-h-[120px] font-mono bg-background border-border"
+              autoFocus
+            />
+            <div className="text-xs text-muted-foreground">
+              💡 Har bir <code>cin &gt;&gt;</code> yoki <code>input()</code> uchun alohida qator yozing
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowInputDialog(false);
+                runCode("");
+              }}
+              className="font-rajdhani"
+            >
+              Inputsiz ishga tushirish
+            </Button>
+            <Button
+              onClick={handleRunWithInput}
+              className="bg-primary text-primary-foreground font-orbitron"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Ishga tushirish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
