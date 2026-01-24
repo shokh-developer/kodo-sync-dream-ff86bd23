@@ -1,106 +1,112 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Manga Code Editor - Bold Anime Aesthetic */
+/* Tokyo Night Theme - VS Code Style */
 
 @layer base {
   :root {
-    /* Dark cyber-manga theme */
-    --background: 240 15% 8%;
-    --foreground: 60 20% 95%;
+    /* Tokyo Night Storm Background Colors */
+    --background: 230 21% 11%;
+    --foreground: 220 13% 91%;
 
-    --card: 240 15% 11%;
-    --card-foreground: 60 20% 95%;
+    --card: 231 20% 13%;
+    --card-foreground: 220 13% 91%;
 
-    --popover: 240 15% 11%;
-    --popover-foreground: 60 20% 95%;
+    --popover: 231 20% 13%;
+    --popover-foreground: 220 13% 91%;
 
-    /* Neon pink/magenta primary */
-    --primary: 330 100% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Tokyo Night Blue Primary */
+    --primary: 215 93% 68%;
+    --primary-foreground: 230 21% 11%;
 
-    /* Cyber blue secondary */
-    --secondary: 195 100% 50%;
-    --secondary-foreground: 240 15% 8%;
+    /* Tokyo Night Purple Secondary */
+    --secondary: 269 68% 72%;
+    --secondary-foreground: 230 21% 11%;
 
-    /* Muted purples */
-    --muted: 260 30% 18%;
-    --muted-foreground: 260 20% 65%;
+    /* Muted grays */
+    --muted: 230 20% 18%;
+    --muted-foreground: 226 15% 55%;
 
-    /* Electric green accent */
-    --accent: 150 100% 45%;
-    --accent-foreground: 240 15% 8%;
+    /* Tokyo Night Cyan Accent */
+    --accent: 178 70% 50%;
+    --accent-foreground: 230 21% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 260 40% 25%;
-    --input: 260 40% 20%;
-    --ring: 330 100% 60%;
+    --border: 232 20% 22%;
+    --input: 232 20% 18%;
+    --ring: 215 93% 68%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Custom manga colors */
-    --neon-pink: 330 100% 60%;
-    --neon-blue: 195 100% 50%;
-    --neon-green: 150 100% 45%;
-    --neon-orange: 25 100% 55%;
-    --neon-purple: 280 100% 60%;
-    --cyber-dark: 240 15% 8%;
-    --cyber-mid: 240 15% 15%;
+    /* Tokyo Night Colors */
+    --tokyo-blue: 215 93% 68%;
+    --tokyo-purple: 269 68% 72%;
+    --tokyo-cyan: 178 70% 50%;
+    --tokyo-green: 120 45% 65%;
+    --tokyo-orange: 30 90% 65%;
+    --tokyo-red: 355 78% 65%;
+    --tokyo-magenta: 324 75% 68%;
+    --tokyo-yellow: 40 85% 70%;
+    --tokyo-storm: 231 20% 13%;
+    --tokyo-night: 230 21% 11%;
+    --tokyo-comment: 226 15% 45%;
 
     /* Gradients */
-    --gradient-manga: linear-gradient(135deg, hsl(330 100% 60%) 0%, hsl(280 100% 60%) 50%, hsl(195 100% 50%) 100%);
-    --gradient-cyber: linear-gradient(180deg, hsl(240 15% 11%) 0%, hsl(240 15% 5%) 100%);
-    --gradient-glow: radial-gradient(ellipse at center, hsl(330 100% 60% / 0.15) 0%, transparent 70%);
+    --gradient-tokyo: linear-gradient(135deg, hsl(215 93% 68%) 0%, hsl(269 68% 72%) 50%, hsl(178 70% 50%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(231 20% 13%) 0%, hsl(230 21% 8%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(215 93% 68% / 0.1) 0%, transparent 70%);
 
     /* Shadows */
-    --shadow-neon-pink: 0 0 20px hsl(330 100% 60% / 0.5), 0 0 40px hsl(330 100% 60% / 0.3);
-    --shadow-neon-blue: 0 0 20px hsl(195 100% 50% / 0.5), 0 0 40px hsl(195 100% 50% / 0.3);
-    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.4);
+    --shadow-blue: 0 0 20px hsl(215 93% 68% / 0.3), 0 0 40px hsl(215 93% 68% / 0.2);
+    --shadow-purple: 0 0 20px hsl(269 68% 72% / 0.3), 0 0 40px hsl(269 68% 72% / 0.2);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
 
-    --sidebar-background: 240 15% 10%;
-    --sidebar-foreground: 60 20% 95%;
-    --sidebar-primary: 330 100% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 40% 20%;
-    --sidebar-accent-foreground: 60 20% 95%;
-    --sidebar-border: 260 40% 25%;
-    --sidebar-ring: 330 100% 60%;
+    --sidebar-background: 231 20% 12%;
+    --sidebar-foreground: 220 13% 91%;
+    --sidebar-primary: 215 93% 68%;
+    --sidebar-primary-foreground: 230 21% 11%;
+    --sidebar-accent: 232 20% 18%;
+    --sidebar-accent-foreground: 220 13% 91%;
+    --sidebar-border: 232 20% 22%;
+    --sidebar-ring: 215 93% 68%;
+
+    --cyber-dark: 230 21% 11%;
+    --cyber-mid: 231 20% 15%;
   }
 
   .dark {
-    /* Same as root - always dark */
-    --background: 240 15% 8%;
-    --foreground: 60 20% 95%;
-    --card: 240 15% 11%;
-    --card-foreground: 60 20% 95%;
-    --popover: 240 15% 11%;
-    --popover-foreground: 60 20% 95%;
-    --primary: 330 100% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 195 100% 50%;
-    --secondary-foreground: 240 15% 8%;
-    --muted: 260 30% 18%;
-    --muted-foreground: 260 20% 65%;
-    --accent: 150 100% 45%;
-    --accent-foreground: 240 15% 8%;
+    --background: 230 21% 11%;
+    --foreground: 220 13% 91%;
+    --card: 231 20% 13%;
+    --card-foreground: 220 13% 91%;
+    --popover: 231 20% 13%;
+    --popover-foreground: 220 13% 91%;
+    --primary: 215 93% 68%;
+    --primary-foreground: 230 21% 11%;
+    --secondary: 269 68% 72%;
+    --secondary-foreground: 230 21% 11%;
+    --muted: 230 20% 18%;
+    --muted-foreground: 226 15% 55%;
+    --accent: 178 70% 50%;
+    --accent-foreground: 230 21% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 260 40% 25%;
-    --input: 260 40% 20%;
-    --ring: 330 100% 60%;
-    --sidebar-background: 240 15% 10%;
-    --sidebar-foreground: 60 20% 95%;
-    --sidebar-primary: 330 100% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 40% 20%;
-    --sidebar-accent-foreground: 60 20% 95%;
-    --sidebar-border: 260 40% 25%;
-    --sidebar-ring: 330 100% 60%;
+    --border: 232 20% 22%;
+    --input: 232 20% 18%;
+    --ring: 215 93% 68%;
+    --sidebar-background: 231 20% 12%;
+    --sidebar-foreground: 220 13% 91%;
+    --sidebar-primary: 215 93% 68%;
+    --sidebar-primary-foreground: 230 21% 11%;
+    --sidebar-accent: 232 20% 18%;
+    --sidebar-accent-foreground: 220 13% 91%;
+    --sidebar-border: 232 20% 22%;
+    --sidebar-ring: 215 93% 68%;
   }
 }
 
@@ -110,51 +116,76 @@
   }
 
   body {
-    @apply bg-background text-foreground font-rajdhani;
+    @apply bg-background text-foreground font-inter;
   }
 }
 
 @layer utilities {
+  .font-jetbrains {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Legacy support */
   .font-orbitron {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
   }
   
   .font-rajdhani {
-    font-family: 'Rajdhani', sans-serif;
+    font-family: 'Inter', sans-serif;
   }
   
   .text-gradient-manga {
-    background: var(--gradient-manga);
+    background: var(--gradient-tokyo);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-tokyo {
+    background: var(--gradient-tokyo);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .bg-gradient-manga {
-    background: var(--gradient-manga);
+    background: var(--gradient-tokyo);
+  }
+
+  .bg-gradient-tokyo {
+    background: var(--gradient-tokyo);
   }
   
   .bg-gradient-cyber {
-    background: var(--gradient-cyber);
+    background: var(--gradient-night);
+  }
+
+  .bg-gradient-night {
+    background: var(--gradient-night);
   }
   
   .glow-pink {
-    box-shadow: var(--shadow-neon-pink);
+    box-shadow: var(--shadow-purple);
   }
   
   .glow-blue {
-    box-shadow: var(--shadow-neon-blue);
+    box-shadow: var(--shadow-blue);
   }
   
   .border-glow {
     border: 1px solid hsl(var(--primary));
-    box-shadow: inset 0 0 10px hsl(var(--primary) / 0.2), 0 0 15px hsl(var(--primary) / 0.3);
+    box-shadow: inset 0 0 10px hsl(var(--primary) / 0.2), 0 0 15px hsl(var(--primary) / 0.2);
   }
 
   .manga-panel {
     position: relative;
     background: hsl(var(--card));
-    border: 2px solid hsl(var(--border));
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-card);
   }
 
@@ -171,8 +202,27 @@
       90deg,
       transparent,
       transparent 2px,
-      hsl(var(--primary) / 0.03) 2px,
-      hsl(var(--primary) / 0.03) 4px
+      hsl(var(--primary) / 0.02) 2px,
+      hsl(var(--primary) / 0.02) 4px
     );
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 }

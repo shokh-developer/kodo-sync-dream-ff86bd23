@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useRoom, useFiles } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
+import { useAuth } from "@/hooks/useAuth";
 import CodeEditor from "@/components/CodeEditor";
 import FileExplorer from "@/components/FileExplorer";
 import EditorTabs from "@/components/EditorTabs";
@@ -9,6 +10,7 @@ import EditorHeader from "@/components/EditorHeader";
 import EditorWelcome from "@/components/EditorWelcome";
 import StatusBar from "@/components/StatusBar";
 import Terminal from "@/components/Terminal";
+import RoomChat from "@/components/RoomChat";
 import { MangaButton } from "@/components/MangaButton";
 import { ArrowLeft, Loader2, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
@@ -238,6 +240,9 @@ const Room = () => {
           />
         </div>
       </div>
+
+      {/* Chat */}
+      <RoomChat roomId={id || ""} />
     </div>
   );
 };

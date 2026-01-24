@@ -4,16 +4,28 @@ import { motion } from "framer-motion";
 import { MangaButton } from "@/components/MangaButton";
 import { MangaCard } from "@/components/MangaCard";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { createRoom } from "@/hooks/useFiles";
-import { Code, Users, Zap, Sparkles, ArrowRight, Plus, LogIn, Flame, Terminal } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import AuthModal from "@/components/AuthModal";
+import { Code, Users, Zap, ArrowRight, Plus, LogIn, Flame, Terminal, User, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [roomName, setRoomName] = useState("");
   const [joinRoomId, setJoinRoomId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, profile, isAuthenticated, signOut, loading } = useAuth();
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
@@ -50,13 +62,22 @@ const Index = () => {
       return;
     }
     
-    // Extract ID from URL if full link is pasted
     let roomId = joinRoomId.trim();
     if (roomId.includes("/room/")) {
       roomId = roomId.split("/room/").pop() || roomId;
     }
     
     navigate(`/room/${roomId}`);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({ title: "Chiqib ketdingiz" });
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
   const features = [
@@ -81,9 +102,59 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-cyber speed-lines">
+    <div className="min-h-screen bg-gradient-night speed-lines">
+      {/* Top Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="h-6 w-6 text-primary" />
+            <span className="font-jetbrains font-bold text-foreground">CodeForge</span>
+          </div>
+
+          {loading ? (
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+          ) : isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                      {getInitials(profile?.display_name || user?.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-foreground hidden sm:inline">
+                    {profile?.display_name || user?.email?.split("@")[0]}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-card border-border">
+                <DropdownMenuItem className="text-muted-foreground">
+                  <User className="h-4 w-4 mr-2" />
+                  Profil
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Chiqish
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <MangaButton
+              variant="primary"
+              size="sm"
+              onClick={() => setShowAuthModal(true)}
+            >
+              <User className="h-4 w-4" />
+              Kirish
+            </MangaButton>
+          )}
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12 lg:py-20">
+      <div className="container mx-auto px-4 py-12 lg:py-20 pt-24">
         {/* Header */}
         <motion.header
           className="text-center mb-16"
@@ -91,18 +162,6 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <motion.div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/50 mb-6"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-          >
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary font-rajdhani">
-              Real-time Collaborative Coding
-            </span>
-          </motion.div>
-          
           <div className="flex items-center justify-center gap-3 mb-4">
             <motion.div
               initial={{ rotate: -10, scale: 0 }}
@@ -111,17 +170,17 @@ const Index = () => {
             >
               <Flame className="h-12 w-12 md:h-16 md:w-16 text-primary" />
             </motion.div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-orbitron font-bold">
-              <span className="text-gradient-manga">CODE</span>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-jetbrains font-bold">
+              <span className="text-gradient-tokyo">CODE</span>
               <span className="text-foreground">FORGE</span>
             </h1>
           </div>
           
-          <p className="text-lg text-muted-foreground font-rajdhani mb-2">
+          <p className="text-lg text-muted-foreground mb-2">
             by <span className="text-primary font-semibold">shokh</span>
           </p>
           
-          <p className="text-base md:text-lg text-muted-foreground font-rajdhani max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Do'stlaringiz bilan real-time rejimda kod yozing va ishga tushiring. 
             <br className="hidden md:block" />
             C++, Python, JavaScript va 10+ til!
@@ -137,12 +196,12 @@ const Index = () => {
                 <div className="p-3 rounded-lg bg-primary/20">
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-xl font-orbitron font-bold text-foreground">
+                <h2 className="text-xl font-jetbrains font-bold text-foreground">
                   Yangi Xona
                 </h2>
               </div>
               
-              <p className="text-muted-foreground font-rajdhani">
+              <p className="text-muted-foreground">
                 Yangi coding xonasi yarating va do'stlaringizni taklif qiling
               </p>
               
@@ -150,7 +209,7 @@ const Index = () => {
                 placeholder="Xona nomi..."
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
-                className="bg-cyber-dark border-border text-foreground placeholder:text-muted-foreground font-rajdhani"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
               />
               
@@ -173,12 +232,12 @@ const Index = () => {
                 <div className="p-3 rounded-lg bg-secondary/20">
                   <LogIn className="h-6 w-6 text-secondary" />
                 </div>
-                <h2 className="text-xl font-orbitron font-bold text-foreground">
+                <h2 className="text-xl font-jetbrains font-bold text-foreground">
                   Xonaga Qo'shilish
                 </h2>
               </div>
               
-              <p className="text-muted-foreground font-rajdhani">
+              <p className="text-muted-foreground">
                 Mavjud xonaga xona ID yoki link orqali qo'shiling
               </p>
               
@@ -186,7 +245,7 @@ const Index = () => {
                 placeholder="Xona ID yoki to'liq link..."
                 value={joinRoomId}
                 onChange={(e) => setJoinRoomId(e.target.value)}
-                className="bg-cyber-dark border-border text-foreground placeholder:text-muted-foreground font-rajdhani"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                 onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
               />
               
@@ -215,14 +274,14 @@ const Index = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.5 + index * 0.1, type: "spring" }}
-                className="inline-flex p-4 rounded-xl bg-gradient-manga mb-4"
+                className="inline-flex p-4 rounded-xl bg-gradient-tokyo mb-4"
               >
                 <feature.icon className="h-8 w-8 text-primary-foreground" />
               </motion.div>
-              <h3 className="text-lg font-orbitron font-bold text-foreground mb-2">
+              <h3 className="text-lg font-jetbrains font-bold text-foreground mb-2">
                 {feature.title}
               </h3>
-              <p className="text-sm text-muted-foreground font-rajdhani">
+              <p className="text-sm text-muted-foreground">
                 {feature.description}
               </p>
             </MangaCard>
@@ -236,7 +295,7 @@ const Index = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <p className="text-sm text-muted-foreground font-rajdhani mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Qo'llab-quvvatlanadigan tillar:
           </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
@@ -257,14 +316,17 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Flame className="h-5 w-5 text-primary" />
-            <span className="font-orbitron font-bold text-foreground">CodeForge</span>
+            <span className="font-jetbrains font-bold text-foreground">CodeForge</span>
           </div>
-          <p className="text-muted-foreground font-rajdhani text-sm">
+          <p className="text-muted-foreground text-sm">
             by <span className="text-primary font-semibold">shokh</span> — 
             Real-time collaborative coding platform
           </p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 };
