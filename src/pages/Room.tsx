@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useRoom, useFiles } from "@/hooks/useFiles";
+import { usePresence } from "@/hooks/usePresence";
 import CodeEditor from "@/components/CodeEditor";
 import FileExplorer from "@/components/FileExplorer";
 import EditorTabs from "@/components/EditorTabs";
@@ -27,6 +28,7 @@ const Room = () => {
     deleteFile,
     renameFile,
   } = useFiles(id || null);
+  const { onlineUsers } = usePresence(id || null);
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -172,6 +174,7 @@ const Room = () => {
             roomId={room.id}
             roomName={room.name}
             activeFileName={activeFile?.name}
+            onlineUsers={onlineUsers}
           />
         </div>
       </div>

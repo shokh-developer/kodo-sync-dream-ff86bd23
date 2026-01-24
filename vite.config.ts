@@ -6,15 +6,16 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
-    port: process.env.PORT ? Number(process.env.PORT) : 4173,
+    port: 8080,
     hmr: {
       overlay: false,
     },
+    allowedHosts: ["codeforgeuz.onrender.com"],
   },
   preview: {
-    host: true, // hamma xostlarga ruxsat
-    port: process.env.PORT ? Number(process.env.PORT) : 4173,
-    allowedHosts: ["codeforgeuz.onrender.com"], // shu xostga ruxsat
+    host: true,
+    port: 8080,
+    allowedHosts: ["codeforgeuz.onrender.com"],
   },
   plugins: [
     react(),
