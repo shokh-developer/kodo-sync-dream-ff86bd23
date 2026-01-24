@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Room from "./pages/Room";
 import NotFound from "./pages/NotFound";
+// import Header from "./components/Header"; // ← BU QATORNI O'CHIRING
 
 const queryClient = new QueryClient();
 
@@ -15,6 +16,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        {/* <Header /> ← BU QATORNI O'CHIRING YO'Q QILING */}
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/room/:id" element={<Room />} />
