@@ -227,25 +227,49 @@ export const useFiles = (roomId: string | null) => {
   };
 };
 
-export const useRoom = (roomId: string | null) => {
+export const useRoom = (roomIdOrName: string | null) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!roomId) {
+    if (!roomIdOrName) {
       setLoading(false);
       return;
     }
 
     const fetchRoom = async () => {
-      const { data, error: fetchError } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("id", roomId)
-        .single();
+      // Check if it's a valid UUID format
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomIdOrName);
+      
+      let data = null;
+      let fetchError = null;
 
-      if (fetchError) {
+      if (isUUID) {
+        // Search by ID first
+        const result = await supabase
+          .from("rooms")
+          .select("*")
+          .eq("id", roomIdOrName)
+          .single();
+        data = result.data;
+        fetchError = result.error;
+      }
+      
+      // If not UUID or not found by ID, search by name
+      if (!data) {
+        const result = await supabase
+          .from("rooms")
+          .select("*")
+          .eq("name", roomIdOrName)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        data = result.data;
+        fetchError = result.error;
+      }
+
+      if (fetchError || !data) {
         setError("Xona topilmadi");
         setLoading(false);
         return;
@@ -256,7 +280,7 @@ export const useRoom = (roomId: string | null) => {
     };
 
     fetchRoom();
-  }, [roomId]);
+  }, [roomIdOrName]);
 
   return { room, loading, error };
 };
