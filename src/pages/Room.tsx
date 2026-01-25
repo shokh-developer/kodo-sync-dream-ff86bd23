@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useRoom, useFiles } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import CodeEditor from "@/components/CodeEditor";
 import FileExplorer from "@/components/FileExplorer";
 import EditorTabs from "@/components/EditorTabs";
@@ -11,6 +12,8 @@ import EditorWelcome from "@/components/EditorWelcome";
 import StatusBar from "@/components/StatusBar";
 import Terminal from "@/components/Terminal";
 import RoomChat from "@/components/RoomChat";
+import AdminPanel from "@/components/AdminPanel";
+import AIAssistant from "@/components/AIAssistant";
 import { MangaButton } from "@/components/MangaButton";
 import { ArrowLeft, Loader2, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
@@ -31,6 +34,7 @@ const Room = () => {
     renameFile,
   } = useFiles(id || null);
   const { onlineUsers } = usePresence(id || null);
+  const { isModerator } = useAdmin();
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -171,6 +175,13 @@ const Room = () => {
           )}
         </MangaButton>
         
+        {/* Admin Panel in Header */}
+        {isModerator && (
+          <div className="flex items-center border-r border-border px-2">
+            <AdminPanel roomId={id} />
+          </div>
+        )}
+        
         <div className="flex-1">
           <EditorHeader
             roomId={room.id}
@@ -243,6 +254,9 @@ const Room = () => {
 
       {/* Chat */}
       <RoomChat roomId={id || ""} />
+
+      {/* AI Assistant */}
+      <AIAssistant code={localContent} language={activeFile?.language || "javascript"} />
     </div>
   );
 };
