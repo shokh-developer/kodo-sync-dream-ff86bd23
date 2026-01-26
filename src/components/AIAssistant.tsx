@@ -100,7 +100,7 @@ const AIAssistant = ({ code, language }: AIAssistantProps) => {
     <>
       {/* Toggle Button */}
       <motion.div
-        className="fixed bottom-24 right-6 z-50"
+        className="fixed bottom-4 right-20 z-50"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -143,7 +143,7 @@ const AIAssistant = ({ code, language }: AIAssistantProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-44 right-6 z-50 w-96 max-h-[500px] bg-cyber-dark border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden"
+            className="fixed bottom-20 right-20 z-50 w-96 max-h-[500px] bg-card border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-primary/20 to-transparent border-b border-border">

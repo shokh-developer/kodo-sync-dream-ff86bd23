@@ -141,10 +141,10 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
       {/* Chat Toggle Button */}
       <motion.button
         className={cn(
-          "fixed bottom-20 right-4 z-50 p-3 rounded-full shadow-lg transition-colors",
+          "fixed bottom-4 right-4 z-50 p-3 rounded-full shadow-lg transition-colors",
           isOpen
             ? "bg-muted text-muted-foreground"
-            : "bg-primary text-primary-foreground"
+            : "bg-secondary text-secondary-foreground"
         )}
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.05 }}
@@ -172,7 +172,7 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-36 right-4 z-50 w-80 h-96 bg-card border border-border rounded-lg shadow-xl flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-4 z-50 w-80 h-96 bg-card border border-border rounded-lg shadow-xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
