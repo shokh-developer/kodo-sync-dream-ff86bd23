@@ -40,11 +40,16 @@ const Index = () => {
     setIsCreating(true);
     try {
       const room = await createRoom(roomName);
-      navigate(`/room/${room.id}`);
-    } catch (error) {
+      if (room?.id) {
+        navigate(`/room/${room.id}`);
+      } else {
+        throw new Error("Xona yaratilmadi");
+      }
+    } catch (error: any) {
+      console.error("Room creation error:", error);
       toast({
         title: "Xatolik",
-        description: "Xona yaratishda xatolik yuz berdi",
+        description: error?.message || "Xona yaratishda xatolik yuz berdi",
         variant: "destructive",
       });
     } finally {
