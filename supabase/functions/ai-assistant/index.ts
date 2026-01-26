@@ -12,10 +12,10 @@ serve(async (req) => {
 
   try {
     const { prompt, code, language } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const systemPrompt = `Sen CodeForge AI yordamchisisisan. Foydalanuvchilarga kod yozishda yordam berasan.
@@ -32,39 +32,45 @@ Hozirgi kod konteksti:
 ${code || "// Hali kod yo'q"}
 \`\`\``;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: systemPrompt },
-                { text: prompt }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-          }
-        }),
-      }
-    );
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      console.error("AI Gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Juda ko'p so'rov. Biroz kutib qayta urinib ko'ring." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Kredit tugadi. Lovable hisobingizga kredit qo'shing." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Javob olishda xatolik";
+    const text = data.choices?.[0]?.message?.content || "Javob olishda xatolik";
 
     return new Response(JSON.stringify({ response: text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
