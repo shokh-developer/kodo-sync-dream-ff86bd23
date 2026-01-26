@@ -27,6 +27,7 @@ interface Message {
 interface AIAssistantProps {
   code: string;
   language: string;
+  author?: string; // qo'shdik
 }
 
 const quickPrompts = [
@@ -36,7 +37,11 @@ const quickPrompts = [
   { icon: Zap, label: "Yangi funksiya", prompt: "Bu kodga yangi funksiya qo'sh" },
 ];
 
-const AIAssistant = ({ code, language }: AIAssistantProps) => {
+const AIAssistant = ({
+  code,
+  language,
+  author = "Shokh-Developer", // default qiymat
+}: AIAssistantProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -110,6 +115,7 @@ const AIAssistant = ({ code, language }: AIAssistantProps) => {
           size="icon"
           onClick={() => setIsOpen(!isOpen)}
           className="h-14 w-14 rounded-full shadow-lg shadow-primary/30"
+          title={`Developed by ${author}`} // tooltip bilan ko'rsatildi
         >
           <AnimatePresence mode="wait">
             {isOpen ? (
@@ -287,6 +293,11 @@ const AIAssistant = ({ code, language }: AIAssistantProps) => {
                 </MangaButton>
               </div>
             </form>
+
+            {/* Footer with author */}
+            <div className="text-xs text-muted-foreground text-center p-2 border-t border-border">
+              Developed by {author}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
