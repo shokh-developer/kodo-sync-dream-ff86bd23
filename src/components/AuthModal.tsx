@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, Loader2, Chrome } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,11 +18,36 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { signInWithEmail, signUpWithEmail } = useAuth();
   const { toast } = useToast();
+
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setDisplayName("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password.trim()) {
+      toast({
+        title: "Xatolik",
+        description: "Email va parolni kiriting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Xatolik",
+        description: "Parol kamida 6 ta belgidan iborat bo'lishi kerak",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -30,20 +55,43 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
         const { error } = await signInWithEmail(email, password);
         if (error) throw error;
         toast({ title: "Muvaffaqiyatli kirdingiz!" });
+        resetForm();
         onClose();
       } else {
+        if (!displayName.trim()) {
+          toast({
+            title: "Xatolik",
+            description: "Ismingizni kiriting",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
         const { error } = await signUpWithEmail(email, password, displayName);
         if (error) throw error;
         toast({ 
-          title: "Ro'yxatdan o'tdingiz!",
-          description: "Email tasdiqlash xabarini tekshiring.",
+          title: "Muvaffaqiyatli ro'yxatdan o'tdingiz!",
+          description: "Endi tizimga kira olasiz",
         });
+        resetForm();
         onClose();
       }
     } catch (error: any) {
+      console.error("Auth error:", error);
+      let errorMessage = error.message;
+      
+      // Translate common errors
+      if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Email yoki parol noto'g'ri";
+      } else if (error.message?.includes("User already registered")) {
+        errorMessage = "Bu email bilan foydalanuvchi allaqachon ro'yxatdan o'tgan";
+      } else if (error.message?.includes("Password should be")) {
+        errorMessage = "Parol kamida 6 ta belgidan iborat bo'lishi kerak";
+      }
+      
       toast({
         title: "Xatolik",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -51,19 +99,9 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const { error } = await signInWithGoogle();
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Xatolik",
-        description: error.message,
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
+  const switchMode = () => {
+    setMode(mode === "login" ? "register" : "login");
+    resetForm();
   };
 
   return (
@@ -80,36 +118,17 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          {/* Google Sign In */}
-          <Button
-            variant="outline"
-            className="w-full gap-2 h-11 border-border hover:bg-muted"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-          >
-            <Chrome className="h-5 w-5" />
-            Google bilan {mode === "login" ? "kirish" : "ro'yxatdan o'tish"}
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">yoki</span>
-            </div>
-          </div>
-
           {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Ism"
+                  placeholder="Ismingiz"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   className="pl-10 bg-background border-border"
+                  disabled={loading}
                 />
               </div>
             )}
@@ -123,6 +142,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 bg-background border-border"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -130,12 +150,13 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 type="password"
-                placeholder="Parol"
+                placeholder="Parol (kamida 6 ta belgi)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 bg-background border-border"
                 required
                 minLength={6}
+                disabled={loading}
               />
             </div>
 
@@ -160,8 +181,9 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 Akkountingiz yo'qmi?{" "}
                 <button
                   type="button"
-                  onClick={() => setMode("register")}
+                  onClick={switchMode}
                   className="text-primary hover:underline"
+                  disabled={loading}
                 >
                   Ro'yxatdan o'ting
                 </button>
@@ -171,8 +193,9 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 Akkountingiz bormi?{" "}
                 <button
                   type="button"
-                  onClick={() => setMode("login")}
+                  onClick={switchMode}
                   className="text-primary hover:underline"
+                  disabled={loading}
                 >
                   Kiring
                 </button>
