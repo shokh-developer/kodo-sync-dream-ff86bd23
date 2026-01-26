@@ -286,12 +286,19 @@ export const useRoom = (roomIdOrName: string | null) => {
 };
 
 export const createRoom = async (name: string) => {
+  console.log("Creating room with name:", name);
+  
   const { data, error } = await supabase
     .from("rooms")
     .insert([{ name, code: "", language: "javascript" }])
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase room creation error:", error);
+    throw new Error(error.message || "Xona yaratishda xatolik");
+  }
+  
+  console.log("Room created successfully:", data);
   return data;
 };
