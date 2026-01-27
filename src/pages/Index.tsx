@@ -138,6 +138,10 @@ const Index = () => {
                   <User className="h-4 w-4 mr-2" />
                   Profil
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="text-foreground cursor-pointer">
+                  <Code className="h-4 w-4 mr-2" />
+                  Mening xonalarim
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
