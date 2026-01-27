@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useRoom, useFiles } from "@/hooks/useFiles";
+import { useRoom, useFiles, joinRoom } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -23,6 +23,7 @@ const Room = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { room, loading: roomLoading, error } = useRoom(id || null);
+  const { user, isAuthenticated } = useAuth();
   const {
     files,
     activeFile,
@@ -32,14 +33,21 @@ const Room = () => {
     updateFileContent,
     deleteFile,
     renameFile,
-  } = useFiles(id || null);
-  const { onlineUsers } = usePresence(id || null);
+  } = useFiles(room?.id || null);
+  const { onlineUsers } = usePresence(room?.id || null);
   const { isModerator } = useAdmin();
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [localContent, setLocalContent] = useState("");
+
+  // Join room when user enters
+  useEffect(() => {
+    if (room?.id && isAuthenticated) {
+      joinRoom(room.id);
+    }
+  }, [room?.id, isAuthenticated]);
 
   // Sync local content with active file when it changes from realtime updates
   useEffect(() => {

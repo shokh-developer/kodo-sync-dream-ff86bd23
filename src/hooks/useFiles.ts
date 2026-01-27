@@ -288,9 +288,17 @@ export const useRoom = (roomIdOrName: string | null) => {
 export const createRoom = async (name: string) => {
   console.log("Creating room with name:", name);
   
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
   const { data, error } = await supabase
     .from("rooms")
-    .insert([{ name, code: "", language: "javascript" }])
+    .insert([{ 
+      name, 
+      code: "", 
+      language: "javascript",
+      created_by: user?.id || null 
+    }])
     .select()
     .single();
 
@@ -300,5 +308,24 @@ export const createRoom = async (name: string) => {
   }
   
   console.log("Room created successfully:", data);
+  return data;
+};
+
+// Join room as member
+export const joinRoom = async (roomId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  
+  const { data, error } = await supabase
+    .from("room_members")
+    .upsert([{ room_id: roomId, user_id: user.id }], { onConflict: "room_id,user_id" })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error joining room:", error);
+    return null;
+  }
+  
   return data;
 };

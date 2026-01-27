@@ -117,10 +117,40 @@ export type Database = {
         }
         Relationships: []
       }
+      room_members: {
+        Row: {
+          id: string
+          joined_at: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           code: string
           created_at: string
+          created_by: string | null
           id: string
           language: string
           name: string
@@ -129,6 +159,7 @@ export type Database = {
         Insert: {
           code?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           language?: string
           name: string
@@ -137,6 +168,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           language?: string
           name?: string
