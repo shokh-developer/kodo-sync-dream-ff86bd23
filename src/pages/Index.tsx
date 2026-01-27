@@ -134,12 +134,12 @@ const Index = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                <DropdownMenuItem className="text-muted-foreground">
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="text-foreground cursor-pointer">
                   <User className="h-4 w-4 mr-2" />
                   Profil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
                   Chiqish
                 </DropdownMenuItem>

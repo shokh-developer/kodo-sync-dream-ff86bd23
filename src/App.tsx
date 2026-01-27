@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Room from "./pages/Room";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-// import Header from "./components/Header"; // ← BU QATORNI O'CHIRING
 
 const queryClient = new QueryClient();
 
@@ -16,11 +16,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        {/* <Header /> ← BU QATORNI O'CHIRING YO'Q QILING */}
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/room/:id" element={<Room />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
