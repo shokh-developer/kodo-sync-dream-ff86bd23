@@ -15,7 +15,7 @@ import {
 import { createRoom } from "@/hooks/useFiles";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
-import { Code, Users, Zap, ArrowRight, Plus, LogIn, Flame, Terminal, User, LogOut } from "lucide-react";
+import { Code, Users, Zap, ArrowRight, Plus, LogIn, Flame, Terminal, User, LogOut, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -141,6 +141,10 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="text-foreground cursor-pointer">
                   <Code className="h-4 w-4 mr-2" />
                   Mening xonalarim
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="text-foreground cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Sozlamalar
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">

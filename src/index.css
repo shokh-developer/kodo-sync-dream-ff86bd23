@@ -4,10 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokyo Night Theme - VS Code Style */
+/* Tokyo Night Theme - VS Code Style (Default) */
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="tokyo-night"] {
     /* Tokyo Night Storm Background Colors */
     --background: 230 21% 11%;
     --foreground: 220 13% 91%;
@@ -107,6 +108,78 @@
     --sidebar-accent-foreground: 220 13% 91%;
     --sidebar-border: 232 20% 22%;
     --sidebar-ring: 215 93% 68%;
+  }
+
+  /* Shades of Purple Theme */
+  [data-theme="shades-of-purple"] {
+    --background: 240 47% 18%;
+    --foreground: 252 30% 92%;
+
+    --card: 240 45% 15%;
+    --card-foreground: 252 30% 92%;
+
+    --popover: 240 45% 15%;
+    --popover-foreground: 252 30% 92%;
+
+    /* Shades of Purple Yellow Primary */
+    --primary: 50 100% 50%;
+    --primary-foreground: 240 47% 18%;
+
+    /* Shades of Purple Lavender Secondary */
+    --secondary: 253 68% 75%;
+    --secondary-foreground: 240 47% 18%;
+
+    /* Muted grays */
+    --muted: 240 40% 22%;
+    --muted-foreground: 252 20% 60%;
+
+    /* Pink Accent */
+    --accent: 345 100% 58%;
+    --accent-foreground: 240 47% 18%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 35% 28%;
+    --input: 240 40% 20%;
+    --ring: 50 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* Shades of Purple Colors */
+    --tokyo-blue: 253 68% 75%;
+    --tokyo-purple: 280 70% 65%;
+    --tokyo-cyan: 180 70% 55%;
+    --tokyo-green: 120 55% 55%;
+    --tokyo-orange: 25 95% 55%;
+    --tokyo-red: 345 100% 58%;
+    --tokyo-magenta: 310 80% 60%;
+    --tokyo-yellow: 50 100% 50%;
+    --tokyo-storm: 240 45% 15%;
+    --tokyo-night: 240 47% 18%;
+    --tokyo-comment: 252 20% 50%;
+
+    /* Gradients */
+    --gradient-tokyo: linear-gradient(135deg, hsl(50 100% 50%) 0%, hsl(253 68% 75%) 50%, hsl(345 100% 58%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(240 45% 15%) 0%, hsl(240 47% 12%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(253 68% 75% / 0.1) 0%, transparent 70%);
+
+    /* Shadows */
+    --shadow-blue: 0 0 20px hsl(253 68% 75% / 0.3), 0 0 40px hsl(253 68% 75% / 0.2);
+    --shadow-purple: 0 0 20px hsl(280 70% 65% / 0.3), 0 0 40px hsl(280 70% 65% / 0.2);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 240 45% 14%;
+    --sidebar-foreground: 252 30% 92%;
+    --sidebar-primary: 50 100% 50%;
+    --sidebar-primary-foreground: 240 47% 18%;
+    --sidebar-accent: 240 40% 22%;
+    --sidebar-accent-foreground: 252 30% 92%;
+    --sidebar-border: 240 35% 28%;
+    --sidebar-ring: 50 100% 50%;
+
+    --cyber-dark: 240 47% 18%;
+    --cyber-mid: 240 45% 20%;
   }
 }
 
