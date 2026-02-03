@@ -181,6 +181,266 @@
     --cyber-dark: 240 47% 18%;
     --cyber-mid: 240 45% 20%;
   }
+
+  /* GitHub Dark Theme */
+  [data-theme="github-dark"] {
+    --background: 220 14% 8%;
+    --foreground: 210 14% 89%;
+
+    --card: 220 13% 12%;
+    --card-foreground: 210 14% 89%;
+
+    --popover: 220 13% 12%;
+    --popover-foreground: 210 14% 89%;
+
+    --primary: 212 100% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 120 45% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 12% 18%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 330 75% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 12% 22%;
+    --input: 220 12% 16%;
+    --ring: 212 100% 58%;
+
+    --radius: 0.375rem;
+
+    --tokyo-blue: 212 100% 58%;
+    --tokyo-purple: 280 65% 55%;
+    --tokyo-cyan: 175 65% 48%;
+    --tokyo-green: 120 45% 50%;
+    --tokyo-orange: 30 90% 55%;
+    --tokyo-red: 0 72% 55%;
+    --tokyo-magenta: 330 75% 60%;
+    --tokyo-yellow: 45 90% 55%;
+    --tokyo-storm: 220 13% 12%;
+    --tokyo-night: 220 14% 8%;
+    --tokyo-comment: 215 15% 45%;
+
+    --gradient-tokyo: linear-gradient(135deg, hsl(212 100% 58%) 0%, hsl(120 45% 50%) 50%, hsl(330 75% 60%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(220 13% 12%) 0%, hsl(220 14% 6%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(212 100% 58% / 0.08) 0%, transparent 70%);
+
+    --shadow-blue: 0 0 20px hsl(212 100% 58% / 0.25), 0 0 40px hsl(212 100% 58% / 0.15);
+    --shadow-purple: 0 0 20px hsl(280 65% 55% / 0.25), 0 0 40px hsl(280 65% 55% / 0.15);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.6);
+
+    --sidebar-background: 220 13% 10%;
+    --sidebar-foreground: 210 14% 89%;
+    --sidebar-primary: 212 100% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 12% 18%;
+    --sidebar-accent-foreground: 210 14% 89%;
+    --sidebar-border: 220 12% 22%;
+    --sidebar-ring: 212 100% 58%;
+
+    --cyber-dark: 220 14% 8%;
+    --cyber-mid: 220 13% 12%;
+  }
+
+  /* Monokai Pro Theme */
+  [data-theme="monokai-pro"] {
+    --background: 70 4% 14%;
+    --foreground: 60 10% 88%;
+
+    --card: 70 5% 17%;
+    --card-foreground: 60 10% 88%;
+
+    --popover: 70 5% 17%;
+    --popover-foreground: 60 10% 88%;
+
+    --primary: 50 95% 62%;
+    --primary-foreground: 70 4% 14%;
+
+    --secondary: 320 70% 60%;
+    --secondary-foreground: 70 4% 14%;
+
+    --muted: 70 4% 22%;
+    --muted-foreground: 60 6% 55%;
+
+    --accent: 180 65% 55%;
+    --accent-foreground: 70 4% 14%;
+
+    --destructive: 5 75% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 70 4% 25%;
+    --input: 70 4% 20%;
+    --ring: 50 95% 62%;
+
+    --radius: 0.5rem;
+
+    --tokyo-blue: 220 65% 58%;
+    --tokyo-purple: 320 70% 60%;
+    --tokyo-cyan: 180 65% 55%;
+    --tokyo-green: 95 60% 55%;
+    --tokyo-orange: 30 90% 55%;
+    --tokyo-red: 5 75% 60%;
+    --tokyo-magenta: 320 70% 60%;
+    --tokyo-yellow: 50 95% 62%;
+    --tokyo-storm: 70 5% 17%;
+    --tokyo-night: 70 4% 14%;
+    --tokyo-comment: 60 6% 45%;
+
+    --gradient-tokyo: linear-gradient(135deg, hsl(50 95% 62%) 0%, hsl(320 70% 60%) 50%, hsl(180 65% 55%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(70 5% 17%) 0%, hsl(70 4% 10%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(50 95% 62% / 0.08) 0%, transparent 70%);
+
+    --shadow-blue: 0 0 20px hsl(50 95% 62% / 0.2), 0 0 40px hsl(50 95% 62% / 0.1);
+    --shadow-purple: 0 0 20px hsl(320 70% 60% / 0.2), 0 0 40px hsl(320 70% 60% / 0.1);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 70 5% 15%;
+    --sidebar-foreground: 60 10% 88%;
+    --sidebar-primary: 50 95% 62%;
+    --sidebar-primary-foreground: 70 4% 14%;
+    --sidebar-accent: 70 4% 22%;
+    --sidebar-accent-foreground: 60 10% 88%;
+    --sidebar-border: 70 4% 25%;
+    --sidebar-ring: 50 95% 62%;
+
+    --cyber-dark: 70 4% 14%;
+    --cyber-mid: 70 5% 17%;
+  }
+
+  /* Dracula Theme */
+  [data-theme="dracula"] {
+    --background: 231 15% 18%;
+    --foreground: 60 30% 96%;
+
+    --card: 232 14% 21%;
+    --card-foreground: 60 30% 96%;
+
+    --popover: 232 14% 21%;
+    --popover-foreground: 60 30% 96%;
+
+    --primary: 326 100% 74%;
+    --primary-foreground: 231 15% 18%;
+
+    --secondary: 265 89% 78%;
+    --secondary-foreground: 231 15% 18%;
+
+    --muted: 232 14% 26%;
+    --muted-foreground: 225 15% 55%;
+
+    --accent: 135 94% 65%;
+    --accent-foreground: 231 15% 18%;
+
+    --destructive: 0 100% 67%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 232 12% 30%;
+    --input: 232 14% 24%;
+    --ring: 326 100% 74%;
+
+    --radius: 0.5rem;
+
+    --tokyo-blue: 225 27% 51%;
+    --tokyo-purple: 265 89% 78%;
+    --tokyo-cyan: 191 97% 77%;
+    --tokyo-green: 135 94% 65%;
+    --tokyo-orange: 31 100% 71%;
+    --tokyo-red: 0 100% 67%;
+    --tokyo-magenta: 326 100% 74%;
+    --tokyo-yellow: 65 92% 76%;
+    --tokyo-storm: 232 14% 21%;
+    --tokyo-night: 231 15% 18%;
+    --tokyo-comment: 225 15% 45%;
+
+    --gradient-tokyo: linear-gradient(135deg, hsl(326 100% 74%) 0%, hsl(265 89% 78%) 50%, hsl(191 97% 77%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(232 14% 21%) 0%, hsl(231 15% 14%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(326 100% 74% / 0.08) 0%, transparent 70%);
+
+    --shadow-blue: 0 0 20px hsl(326 100% 74% / 0.25), 0 0 40px hsl(326 100% 74% / 0.15);
+    --shadow-purple: 0 0 20px hsl(265 89% 78% / 0.25), 0 0 40px hsl(265 89% 78% / 0.15);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 232 14% 19%;
+    --sidebar-foreground: 60 30% 96%;
+    --sidebar-primary: 326 100% 74%;
+    --sidebar-primary-foreground: 231 15% 18%;
+    --sidebar-accent: 232 14% 26%;
+    --sidebar-accent-foreground: 60 30% 96%;
+    --sidebar-border: 232 12% 30%;
+    --sidebar-ring: 326 100% 74%;
+
+    --cyber-dark: 231 15% 18%;
+    --cyber-mid: 232 14% 21%;
+  }
+
+  /* One Dark Pro Theme */
+  [data-theme="one-dark-pro"] {
+    --background: 220 13% 18%;
+    --foreground: 219 14% 76%;
+
+    --card: 220 13% 21%;
+    --card-foreground: 219 14% 76%;
+
+    --popover: 220 13% 21%;
+    --popover-foreground: 219 14% 76%;
+
+    --primary: 207 82% 66%;
+    --primary-foreground: 220 13% 18%;
+
+    --secondary: 286 60% 67%;
+    --secondary-foreground: 220 13% 18%;
+
+    --muted: 220 12% 26%;
+    --muted-foreground: 219 10% 50%;
+
+    --accent: 95 38% 62%;
+    --accent-foreground: 220 13% 18%;
+
+    --destructive: 355 65% 65%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 12% 28%;
+    --input: 220 12% 24%;
+    --ring: 207 82% 66%;
+
+    --radius: 0.375rem;
+
+    --tokyo-blue: 207 82% 66%;
+    --tokyo-purple: 286 60% 67%;
+    --tokyo-cyan: 187 47% 55%;
+    --tokyo-green: 95 38% 62%;
+    --tokyo-orange: 29 54% 61%;
+    --tokyo-red: 355 65% 65%;
+    --tokyo-magenta: 286 60% 67%;
+    --tokyo-yellow: 39 67% 69%;
+    --tokyo-storm: 220 13% 21%;
+    --tokyo-night: 220 13% 18%;
+    --tokyo-comment: 219 10% 40%;
+
+    --gradient-tokyo: linear-gradient(135deg, hsl(207 82% 66%) 0%, hsl(286 60% 67%) 50%, hsl(95 38% 62%) 100%);
+    --gradient-night: linear-gradient(180deg, hsl(220 13% 21%) 0%, hsl(220 13% 14%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(207 82% 66% / 0.08) 0%, transparent 70%);
+
+    --shadow-blue: 0 0 20px hsl(207 82% 66% / 0.2), 0 0 40px hsl(207 82% 66% / 0.1);
+    --shadow-purple: 0 0 20px hsl(286 60% 67% / 0.2), 0 0 40px hsl(286 60% 67% / 0.1);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 220 13% 19%;
+    --sidebar-foreground: 219 14% 76%;
+    --sidebar-primary: 207 82% 66%;
+    --sidebar-primary-foreground: 220 13% 18%;
+    --sidebar-accent: 220 12% 26%;
+    --sidebar-accent-foreground: 219 14% 76%;
+    --sidebar-border: 220 12% 28%;
+    --sidebar-ring: 207 82% 66%;
+
+    --cyber-dark: 220 13% 18%;
+    --cyber-mid: 220 13% 21%;
+  }
 }
 
 @layer base {

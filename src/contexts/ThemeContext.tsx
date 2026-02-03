@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme = "tokyo-night" | "shades-of-purple";
+export type Theme = "tokyo-night" | "shades-of-purple" | "github-dark" | "monokai-pro" | "dracula" | "one-dark-pro";
 
 interface ThemeContextType {
   theme: Theme;
