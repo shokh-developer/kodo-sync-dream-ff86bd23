@@ -244,12 +244,14 @@ const Room = () => {
             )}
           </div>
 
-          {/* Terminal */}
+          {/* Terminal - with linked files support */}
           <Terminal
             isOpen={terminalOpen}
             onToggle={() => setTerminalOpen(!terminalOpen)}
             code={localContent}
             language={activeFile?.language || "javascript"}
+            files={files}
+            activeFile={activeFile}
           />
 
           {/* Status bar */}
@@ -263,8 +265,20 @@ const Room = () => {
       {/* Chat */}
       <RoomChat roomId={id || ""} />
 
-      {/* AI Assistant */}
-      <AIAssistant code={localContent} language={activeFile?.language || "javascript"} />
+      {/* AI Assistant - GitHub Copilot style */}
+      <AIAssistant 
+        code={localContent} 
+        language={activeFile?.language || "javascript"}
+        files={files}
+        activeFile={activeFile}
+        onCreateFile={async (name, path, isFolder, language, content) => {
+          return await createFile(name, path, isFolder, language, content);
+        }}
+        onUpdateFileContent={(fileId, content) => {
+          updateFileContent(fileId, content);
+          setLocalContent(content);
+        }}
+      />
     </div>
   );
 };
