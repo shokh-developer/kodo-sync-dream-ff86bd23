@@ -23,6 +23,8 @@ import {
   Copy,
   Check,
   RefreshCw,
+  ArrowUp,
+  Crown,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
@@ -85,8 +87,25 @@ const AIAssistant = ({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if AI upgrade is enabled
+    const checkUpgradeSetting = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "ai_upgrade_enabled")
+        .single();
+      
+      if (data?.value) {
+        setShowUpgrade((data.value as any).enabled || false);
+      }
+    };
+    checkUpgradeSetting();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -346,13 +365,27 @@ Qoidalar:
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={clearChat}
-                  className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  title="Chatni tozalash"
-                >
-                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {showUpgrade && (
+                    <button
+                      onClick={() => toast({
+                        title: "AI Pro",
+                        description: "AI Pro versiyasi tez orada keladi! 🚀",
+                      })}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 text-xs font-medium transition-all"
+                    >
+                      <Crown className="h-3 w-3" />
+                      Upgrade
+                    </button>
+                  )}
+                  <button
+                    onClick={clearChat}
+                    className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    title="Chatni tozalash"
+                  >
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </div>
               </div>
             </div>
 
