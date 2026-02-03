@@ -14,11 +14,22 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
+interface FileItem {
+  id: string;
+  name: string;
+  path: string;
+  content: string;
+  language: string;
+  is_folder: boolean;
+}
+
 interface TerminalProps {
   isOpen: boolean;
   onToggle: () => void;
   code: string;
   language: string;
+  files?: FileItem[];  // All files for linking support
+  activeFile?: FileItem | null;
 }
 
 interface LogEntry {
@@ -27,8 +38,8 @@ interface LogEntry {
   timestamp: Date;
 }
 
-// Languages that can run in browser
-const browserLanguages = ["javascript", "html"];
+// Languages that can run in browser (with linked support)
+const browserLanguages = ["javascript", "html", "css"];
 
 // Languages supported by backend
 const backendLanguages = ["javascript", "typescript", "python", "cpp", "c", "java", "go", "rust", "php", "ruby", "csharp"];
@@ -36,7 +47,29 @@ const backendLanguages = ["javascript", "typescript", "python", "cpp", "c", "jav
 // Languages that typically need input
 const inputLanguages = ["cpp", "c", "python", "java", "go", "rust", "csharp"];
 
-const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
+// File extensions to language mapping
+const getLanguageFromExt = (ext: string): string => {
+  const map: Record<string, string> = {
+    js: "javascript",
+    jsx: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    html: "html",
+    css: "css",
+    py: "python",
+    cpp: "cpp",
+    c: "c",
+    java: "java",
+    go: "go",
+    rs: "rust",
+    php: "php",
+    rb: "ruby",
+    cs: "csharp",
+  };
+  return map[ext] || "plaintext";
+};
+
+const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: TerminalProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showInputDialog, setShowInputDialog] = useState(false);
@@ -67,16 +100,107 @@ const Terminal = ({ isOpen, onToggle, code, language }: TerminalProps) => {
     return false;
   };
 
+  // Find linked files (CSS/JS for HTML, etc.)
+  const findLinkedFiles = () => {
+    if (!files || !activeFile) return { css: [], js: [] };
+    
+    const currentPath = activeFile.path;
+    const linkedCss: FileItem[] = [];
+    const linkedJs: FileItem[] = [];
+
+    // Find files in the same directory
+    files.forEach(file => {
+      if (file.is_folder || file.id === activeFile.id) return;
+      if (file.path !== currentPath) return;
+
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext === 'css' || ext === 'scss') {
+        linkedCss.push(file);
+      } else if (ext === 'js' || ext === 'jsx') {
+        linkedJs.push(file);
+      }
+    });
+
+    // Also check HTML for linked files via src/href attributes
+    if (language === 'html') {
+      const linkRegex = /<link[^>]+href=["']([^"']+)["']/gi;
+      const scriptRegex = /<script[^>]+src=["']([^"']+)["']/gi;
+      
+      let match;
+      while ((match = linkRegex.exec(code)) !== null) {
+        const fileName = match[1].split('/').pop();
+        const linkedFile = files.find(f => f.name === fileName && !f.is_folder);
+        if (linkedFile && !linkedCss.find(c => c.id === linkedFile.id)) {
+          linkedCss.push(linkedFile);
+        }
+      }
+      
+      while ((match = scriptRegex.exec(code)) !== null) {
+        const fileName = match[1].split('/').pop();
+        const linkedFile = files.find(f => f.name === fileName && !f.is_folder);
+        if (linkedFile && !linkedJs.find(j => j.id === linkedFile.id)) {
+          linkedJs.push(linkedFile);
+        }
+      }
+    }
+
+    return { css: linkedCss, js: linkedJs };
+  };
+
   const runCodeInBrowser = () => {
     try {
       if (language === "html") {
-        addLog("info", "HTML brauzerda preview qilish kerak. Alohida oyna ochiladi.");
+        const { css, js } = findLinkedFiles();
+        
+        addLog("info", "🌐 HTML brauzerda ishga tushirilmoqda...");
+        if (css.length > 0) {
+          addLog("info", `🎨 Bog'langan CSS fayllar: ${css.map(f => f.name).join(', ')}`);
+        }
+        if (js.length > 0) {
+          addLog("info", `⚡ Bog'langan JS fayllar: ${js.map(f => f.name).join(', ')}`);
+        }
+
         const newWindow = window.open("", "_blank");
         if (newWindow) {
-          newWindow.document.write(code);
+          // Build HTML with linked CSS and JS
+          let htmlContent = code;
+          
+          // Inject CSS into head
+          if (css.length > 0) {
+            const cssContent = css.map(f => f.content).join('\n');
+            const styleTag = `<style>\n/* Auto-injected CSS */\n${cssContent}\n</style>`;
+            
+            if (htmlContent.includes('</head>')) {
+              htmlContent = htmlContent.replace('</head>', `${styleTag}\n</head>`);
+            } else if (htmlContent.includes('<body')) {
+              htmlContent = htmlContent.replace('<body', `${styleTag}\n<body`);
+            } else {
+              htmlContent = styleTag + htmlContent;
+            }
+          }
+          
+          // Inject JS before closing body
+          if (js.length > 0) {
+            const jsContent = js.map(f => f.content).join('\n');
+            const scriptTag = `<script>\n/* Auto-injected JavaScript */\n${jsContent}\n</script>`;
+            
+            if (htmlContent.includes('</body>')) {
+              htmlContent = htmlContent.replace('</body>', `${scriptTag}\n</body>`);
+            } else {
+              htmlContent += scriptTag;
+            }
+          }
+          
+          newWindow.document.write(htmlContent);
           newWindow.document.close();
-          addLog("result", "✅ HTML yangi oynada ochildi!");
+          addLog("result", "✅ HTML yangi oynada ochildi (CSS va JS bog'landi)!");
         }
+        return;
+      }
+
+      if (language === "css") {
+        addLog("warn", "⚠️ CSS faylni alohida ishga tushirib bo'lmaydi.");
+        addLog("info", "💡 CSS ni HTML fayliga bog'lang yoki HTML faylini ishga tushiring.");
         return;
       }
 
