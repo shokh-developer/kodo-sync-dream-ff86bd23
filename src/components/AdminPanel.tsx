@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { MangaButton } from "./MangaButton";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import {
   Shield,
   Users,
@@ -32,6 +34,8 @@ import {
   Crown,
   Trash2,
   Clock,
+  Sparkles,
+  Settings,
 } from "lucide-react";
 
 type AppRole = "admin" | "moderator" | "user";
@@ -43,7 +47,7 @@ interface User {
   role: AppRole;
 }
 
-interface Ban {
+interface UserBan {
   id: string;
   user_id: string;
   room_id: string | null;
@@ -63,12 +67,14 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [bans, setBans] = useState<Ban[]>([]);
+  const [bans, setBans] = useState<UserBan[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [banType, setBanType] = useState<"ban" | "kick" | "mute">("mute");
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("1h");
   const [loading, setLoading] = useState(false);
+  const [aiUpgradeEnabled, setAiUpgradeEnabled] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     if (open && isModerator) {
@@ -83,6 +89,46 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
     ]);
     setUsers(usersData);
     setBans(bansData);
+
+    // Load AI upgrade setting
+    const { data: setting } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "ai_upgrade_enabled")
+      .single();
+    
+    if (setting?.value) {
+      setAiUpgradeEnabled((setting.value as any).enabled || false);
+    }
+  };
+
+  const toggleAiUpgrade = async () => {
+    if (!isAdmin) {
+      toast({ title: "Faqat adminlar o'zgartira oladi", variant: "destructive" });
+      return;
+    }
+
+    setSettingsLoading(true);
+    const newValue = !aiUpgradeEnabled;
+    
+    const { error } = await supabase
+      .from("app_settings")
+      .update({ 
+        value: { enabled: newValue, message: "AI Pro versiyasiga yangilash" },
+        updated_at: new Date().toISOString()
+      })
+      .eq("key", "ai_upgrade_enabled");
+
+    if (error) {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    } else {
+      setAiUpgradeEnabled(newValue);
+      toast({ 
+        title: newValue ? "AI Upgrade yoqildi" : "AI Upgrade o'chirildi",
+        description: newValue ? "Foydalanuvchilar upgrade tugmasini ko'radi" : "Upgrade tugmasi yashirildi"
+      });
+    }
+    setSettingsLoading(false);
   };
 
   const handleBan = async () => {
@@ -180,15 +226,18 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
         </DialogHeader>
 
         <Tabs defaultValue="users" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3 bg-background/50">
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="h-4 w-4" /> Foydalanuvchilar
+          <TabsList className="grid w-full grid-cols-4 bg-background/50">
+            <TabsTrigger value="users" className="gap-1 text-xs">
+              <Users className="h-3 w-3" /> Foydalanuvchilar
             </TabsTrigger>
-            <TabsTrigger value="actions" className="gap-2">
-              <Ban className="h-4 w-4" /> Amallar
+            <TabsTrigger value="actions" className="gap-1 text-xs">
+              <Ban className="h-3 w-3" /> Amallar
             </TabsTrigger>
-            <TabsTrigger value="bans" className="gap-2">
-              <UserX className="h-4 w-4" /> Bloklar
+            <TabsTrigger value="bans" className="gap-1 text-xs">
+              <UserX className="h-3 w-3" /> Bloklar
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-1 text-xs">
+              <Settings className="h-3 w-3" /> Sozlamalar
             </TabsTrigger>
           </TabsList>
 
@@ -371,6 +420,35 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                 </AnimatePresence>
               </div>
             </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-4 space-y-4">
+            <div className="p-4 rounded-lg bg-background/30 border border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">AI Upgrade tugmasi</p>
+                    <p className="text-xs text-muted-foreground">
+                      Foydalanuvchilarga "AI ni yangilash" tugmasini ko'rsatish
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={aiUpgradeEnabled}
+                  onCheckedChange={toggleAiUpgrade}
+                  disabled={settingsLoading || !isAdmin}
+                />
+              </div>
+            </div>
+
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground text-center">
+                Sozlamalarni faqat adminlar o'zgartira oladi
+              </p>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
