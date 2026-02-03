@@ -321,6 +321,11 @@ Qoidalar:
     setMessages([]);
   };
 
+  // If AI is disabled, don't render anything
+  if (aiDisabled) {
+    return null;
+  }
+
   return (
     <>
       {/* Toggle Button */}
