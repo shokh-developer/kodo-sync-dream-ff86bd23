@@ -88,23 +88,38 @@ const AIAssistant = ({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [aiDisabled, setAiDisabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if AI upgrade is enabled
-    const checkUpgradeSetting = async () => {
-      const { data } = await supabase
+    const checkSettings = async () => {
+      // Check if AI upgrade is enabled
+      const { data: upgradeSetting } = await supabase
         .from("app_settings")
         .select("value")
         .eq("key", "ai_upgrade_enabled")
         .single();
       
-      if (data?.value) {
-        setShowUpgrade((data.value as any).enabled || false);
+      if (upgradeSetting?.value) {
+        setShowUpgrade((upgradeSetting.value as any).enabled || false);
+      }
+
+      // Check if current user has AI access
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: aiAccess } = await supabase
+          .from("user_ai_access")
+          .select("ai_enabled")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (aiAccess) {
+          setAiDisabled(!aiAccess.ai_enabled);
+        }
       }
     };
-    checkUpgradeSetting();
+    checkSettings();
   }, []);
 
   useEffect(() => {
@@ -168,6 +183,16 @@ const AIAssistant = ({
 
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim() || isLoading) return;
+
+    // Check if AI is disabled for this user
+    if (aiDisabled) {
+      toast({
+        title: "AI o'chirilgan",
+        description: "Admin tomonidan sizning AI dan foydalanish huquqingiz o'chirilgan",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const userMessage: Message = {
       role: "user",

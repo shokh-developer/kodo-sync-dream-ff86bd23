@@ -200,6 +200,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ai_access: {
+        Row: {
+          ai_enabled: boolean
+          created_at: string | null
+          disabled_at: string | null
+          disabled_by: string | null
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_enabled?: boolean
+          created_at?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_enabled?: boolean
+          created_at?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_bans: {
         Row: {
           ban_type: string

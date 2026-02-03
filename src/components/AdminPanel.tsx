@@ -45,6 +45,7 @@ interface User {
   display_name: string | null;
   avatar_url: string | null;
   role: AppRole;
+  ai_enabled?: boolean;
 }
 
 interface UserBan {
@@ -87,7 +88,21 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
       getAllUsers(),
       getBans(roomId),
     ]);
-    setUsers(usersData);
+    
+    // Load AI access for all users
+    const { data: aiAccessData } = await supabase
+      .from("user_ai_access")
+      .select("user_id, ai_enabled");
+    
+    const aiAccessMap = new Map(aiAccessData?.map(a => [a.user_id, a.ai_enabled]) || []);
+    
+    // Add AI status to users (default is enabled)
+    const usersWithAI = usersData.map(u => ({
+      ...u,
+      ai_enabled: aiAccessMap.get(u.user_id) ?? true
+    }));
+    
+    setUsers(usersWithAI);
     setBans(bansData);
 
     // Load AI upgrade setting
@@ -99,6 +114,38 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
     
     if (setting?.value) {
       setAiUpgradeEnabled((setting.value as any).enabled || false);
+    }
+  };
+
+  const toggleUserAI = async (userId: string, currentStatus: boolean) => {
+    if (!isAdmin) {
+      toast({ title: "Faqat adminlar o'zgartira oladi", variant: "destructive" });
+      return;
+    }
+
+    const newStatus = !currentStatus;
+    
+    // Upsert - mavjud bo'lsa update, bo'lmasa insert
+    const { error } = await supabase
+      .from("user_ai_access")
+      .upsert({
+        user_id: userId,
+        ai_enabled: newStatus,
+        disabled_by: newStatus ? null : (await supabase.auth.getUser()).data.user?.id,
+        disabled_at: newStatus ? null : new Date().toISOString()
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    } else {
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.user_id === userId ? { ...u, ai_enabled: newStatus } : u
+      ));
+      toast({
+        title: newStatus ? "AI yoqildi" : "AI o'chirildi",
+        description: `Foydalanuvchi uchun AI ${newStatus ? "yoqildi" : "o'chirildi"}`
+      });
     }
   };
 
@@ -264,6 +311,19 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isAdmin && (
+                        <button
+                          onClick={() => toggleUserAI(user.user_id, user.ai_enabled ?? true)}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            user.ai_enabled !== false
+                              ? "bg-primary/20 text-primary hover:bg-primary/30"
+                              : "bg-destructive/20 text-destructive hover:bg-destructive/30"
+                          }`}
+                          title={user.ai_enabled !== false ? "AI o'chirish" : "AI yoqish"}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </button>
+                      )}
                       {isAdmin ? (
                         <Select
                           value={user.role}
