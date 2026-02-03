@@ -346,22 +346,28 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
   return (
     <>
       <div className="border-t-2 border-primary/30">
-        {/* Terminal Header */}
+        {/* Terminal Header - Always visible with Run button */}
         <div
           className="flex items-center justify-between px-4 py-2 bg-cyber-dark cursor-pointer hover:bg-muted/30 transition-colors"
           onClick={onToggle}
         >
           <div className="flex items-center gap-3">
             <TerminalIcon className="h-4 w-4 text-primary" />
-            <span className="text-sm font-orbitron text-foreground tracking-wider">TERMINAL</span>
+            <span className="text-sm font-jetbrains text-foreground tracking-wider">TERMINAL</span>
             {logs.length > 0 && (
               <span className="px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary font-mono">
                 {logs.length}
               </span>
             )}
-            <span className="text-xs text-muted-foreground font-rajdhani px-2 py-0.5 rounded bg-muted/50">
+            <span className="text-xs text-muted-foreground font-inter px-2 py-0.5 rounded bg-muted/50">
               {language.toUpperCase()}
             </span>
+            {/* Linked files indicator */}
+            {files && activeFile && language === 'html' && (
+              <span className="text-xs text-accent font-inter">
+                📦 Linked
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {/* Input hint for languages that need it */}
@@ -379,14 +385,14 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
                 handleRunClick();
               }}
               disabled={isRunning || !code.trim()}
-              className="h-7 px-4 font-orbitron"
+              className="h-8 px-5 font-jetbrains"
             >
               {isRunning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Play className="h-3.5 w-3.5" />
+                <Play className="h-4 w-4" />
               )}
-              {isRunning ? "Ishlamoqda..." : "RUN"}
+              {isRunning ? "Running..." : "RUN"}
             </MangaButton>
             {isOpen ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -396,51 +402,65 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
           </div>
         </div>
 
-        {/* Terminal Content */}
-        <AnimatePresence>
+        {/* Terminal Content - Enhanced */}
+        <AnimatePresence initial={false}>
           {isOpen && (
             <motion.div
               initial={{ height: 0 }}
-              animate={{ height: 220 }}
+              animate={{ height: 280 }}
               exit={{ height: 0 }}
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="h-[220px] flex flex-col bg-[#0d0d0d]">
+              <div className="h-[280px] flex flex-col bg-[#0a0a0a]">
                 {/* Toolbar */}
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-cyber-dark">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/50">
+                  <div className="flex items-center gap-3">
                     <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-destructive/80" />
+                      <div className="w-3 h-3 rounded-full bg-[hsl(var(--tokyo-yellow))]/80" />
+                      <div className="w-3 h-3 rounded-full bg-[hsl(var(--tokyo-green))]/80" />
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono ml-2">
+                    <span className="text-xs text-muted-foreground font-mono">
                       output
                     </span>
+                    {/* Tabs */}
+                    <div className="flex gap-1 ml-4">
+                      <span className="px-3 py-1 text-xs rounded bg-muted/50 text-foreground font-mono border-b-2 border-primary">
+                        Console
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearLogs();
-                    }}
-                    className="p-1.5 rounded hover:bg-muted/50 transition-colors group"
-                    title="Tozalash"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearLogs();
+                      }}
+                      className="p-1.5 rounded hover:bg-muted/50 transition-colors group"
+                      title="Tozalash"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Logs */}
                 <div className="flex-1 overflow-y-auto p-3 font-mono text-sm space-y-1">
                   {logs.length === 0 ? (
                     <div className="text-muted-foreground text-center py-8">
-                      <TerminalIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                      <p className="font-rajdhani text-base">Kodni ishga tushirish uchun</p>
-                      <p className="text-primary font-orbitron mt-1">"RUN" tugmasini bosing</p>
-                      <p className="text-xs mt-3 opacity-60">
-                        C++, Python, JavaScript, TypeScript, Java, Go, Rust...
+                      <TerminalIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                      <p className="font-inter text-base mb-1">Terminal tayyor</p>
+                      <p className="text-primary font-jetbrains text-sm">
+                        Kodni ishga tushirish uchun "RUN" bosing
                       </p>
+                      <div className="flex flex-wrap justify-center gap-2 mt-4 text-xs opacity-60">
+                        <span className="px-2 py-1 rounded bg-muted/30">JavaScript</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Python</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">C++</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Java</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">HTML+CSS</span>
+                      </div>
                     </div>
                   ) : (
                     logs.map((log, index) => (
@@ -450,7 +470,7 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
                         animate={{ opacity: 1, x: 0 }}
                         className={cn("flex gap-2 py-0.5", getLogColor(log.type))}
                       >
-                        <span className="text-muted-foreground/50 text-xs w-16 flex-shrink-0">
+                        <span className="text-muted-foreground/40 text-xs w-16 flex-shrink-0 tabular-nums">
                           {log.timestamp.toLocaleTimeString()}
                         </span>
                         <pre className="whitespace-pre-wrap break-all flex-1 leading-relaxed">
@@ -460,6 +480,33 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
                     ))
                   )}
                   <div ref={logsEndRef} />
+                </div>
+
+                {/* Interactive Input Line */}
+                <div className="border-t border-border/30 p-2 bg-card/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary font-mono text-sm">$</span>
+                    <input
+                      type="text"
+                      placeholder="Buyruq yozing yoki Enter bosib kodni ishga tushiring..."
+                      className="flex-1 bg-transparent text-foreground font-mono text-sm outline-none placeholder:text-muted-foreground/50"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const value = e.currentTarget.value.trim();
+                          if (value === 'run' || value === '') {
+                            handleRunClick();
+                          } else if (value === 'clear' || value === 'cls') {
+                            clearLogs();
+                          } else if (value.startsWith('echo ')) {
+                            addLog('log', value.substring(5));
+                          } else {
+                            addLog('info', `> ${value}`);
+                          }
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>

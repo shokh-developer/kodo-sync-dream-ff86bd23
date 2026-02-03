@@ -39,7 +39,7 @@ const Room = () => {
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [terminalOpen, setTerminalOpen] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(true); // Default ochiq
   const [localContent, setLocalContent] = useState("");
 
   // Join room when user enters
