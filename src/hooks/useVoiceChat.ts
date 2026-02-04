@@ -21,6 +21,8 @@ const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
 ];
 
 export const useVoiceChat = (roomId: string | null) => {
@@ -38,10 +40,16 @@ export const useVoiceChat = (roomId: string | null) => {
   const userName = profile?.display_name || "Anonim";
 
   const createPeerConnection = useCallback((peerId: string, peerName: string) => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    console.log(`Creating peer connection for ${peerId} (${peerName})`);
+    
+    const pc = new RTCPeerConnection({ 
+      iceServers: ICE_SERVERS,
+      iceCandidatePoolSize: 10,
+    });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
+        console.log(`Sending ICE candidate to ${peerId}`);
         channelRef.current.send({
           type: "broadcast",
           event: "voice_signal",
@@ -56,28 +64,49 @@ export const useVoiceChat = (roomId: string | null) => {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log(`ICE connection state for ${peerId}:`, pc.iceConnectionState);
+    };
+
     pc.ontrack = (event) => {
+      console.log(`Received remote track from ${peerId}`, event.streams);
       const [remoteStream] = event.streams;
-      const existingPeer = peersRef.current.get(peerId);
-      if (existingPeer) {
-        existingPeer.stream = remoteStream;
-        peersRef.current.set(peerId, existingPeer);
-        setPeers(new Map(peersRef.current));
+      if (remoteStream) {
+        const existingPeer = peersRef.current.get(peerId);
+        if (existingPeer) {
+          existingPeer.stream = remoteStream;
+          peersRef.current.set(peerId, existingPeer);
+          setPeers(new Map(peersRef.current));
+          console.log(`Remote stream set for ${peerId}, tracks:`, remoteStream.getTracks().length);
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
       console.log(`Peer ${peerId} connection state:`, pc.connectionState);
       if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-        removePeer(peerId);
+        console.log(`Connection failed/disconnected for ${peerId}, removing peer`);
+        // Remove peer inline to avoid dependency issue
+        const peer = peersRef.current.get(peerId);
+        if (peer) {
+          peer.connection.close();
+          peersRef.current.delete(peerId);
+          setPeers(new Map(peersRef.current));
+        }
       }
     };
 
-    // Add local tracks
+    // Add local tracks with proper handling
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
+      const tracks = localStreamRef.current.getTracks();
+      console.log(`Adding ${tracks.length} local tracks to peer connection`);
+      tracks.forEach((track) => {
+        if (localStreamRef.current) {
+          pc.addTrack(track, localStreamRef.current);
+        }
       });
+    } else {
+      console.warn("No local stream available when creating peer connection");
     }
 
     const peer: VoicePeer = {

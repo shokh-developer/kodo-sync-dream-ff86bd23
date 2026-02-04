@@ -43,12 +43,30 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
       if (peer.stream) {
         let audio = audioRefs.current.get(peer.odaara);
         if (!audio) {
-          audio = new Audio();
+          audio = document.createElement('audio');
           audio.autoplay = true;
+          (audio as any).playsInline = true;
+          audio.volume = 1.0;
+          // Append to DOM to ensure playback works
+          audio.style.display = 'none';
+          document.body.appendChild(audio);
           audioRefs.current.set(peer.odaara, audio);
+          console.log(`Created audio element for peer ${peer.odaara}`);
         }
         if (audio.srcObject !== peer.stream) {
           audio.srcObject = peer.stream;
+          console.log(`Set audio stream for peer ${peer.odaara}, tracks:`, peer.stream.getAudioTracks().length);
+          
+          // Force play with user gesture handling
+          audio.play().catch((e) => {
+            console.error(`Audio play failed for ${peer.odaara}:`, e);
+            // Try again on user interaction
+            const playOnInteraction = () => {
+              audio?.play().catch(console.error);
+              document.removeEventListener('click', playOnInteraction);
+            };
+            document.addEventListener('click', playOnInteraction, { once: true });
+          });
         }
       }
     });
@@ -57,7 +75,9 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
     audioRefs.current.forEach((audio, odaaraId) => {
       if (!peers.find((p) => p.odaara === odaaraId)) {
         audio.srcObject = null;
+        audio.remove();
         audioRefs.current.delete(odaaraId);
+        console.log(`Removed audio element for peer ${odaaraId}`);
       }
     });
   }, [peers]);
