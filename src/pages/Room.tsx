@@ -12,6 +12,7 @@ import EditorWelcome from "@/components/EditorWelcome";
 import StatusBar from "@/components/StatusBar";
 import Terminal from "@/components/Terminal";
 import RoomChat from "@/components/RoomChat";
+import VoiceChat from "@/components/VoiceChat";
 import AdminPanel from "@/components/AdminPanel";
 import AIAssistant from "@/components/AIAssistant";
 import { MangaButton } from "@/components/MangaButton";
@@ -264,6 +265,9 @@ const Room = () => {
 
       {/* Chat */}
       <RoomChat roomId={id || ""} />
+
+      {/* Voice Chat */}
+      <VoiceChat roomId={id || ""} />
 
       {/* AI Assistant - GitHub Copilot style */}
       <AIAssistant 
