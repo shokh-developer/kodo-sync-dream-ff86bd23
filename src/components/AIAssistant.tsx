@@ -5,7 +5,8 @@ import { MangaButton } from "./MangaButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Maximize2, Minimize2 } from "lucide-react";
+// Badge import removed - using span instead
 import {
   Bot,
   Send,
@@ -83,6 +84,7 @@ const AIAssistant = ({
   author = "Shokh-Developer",
 }: AIAssistantProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -374,10 +376,14 @@ Qoidalar:
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-20 right-20 z-50 w-[420px] max-h-[600px] bg-card border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden"
+            className={`fixed z-50 bg-card border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden flex flex-col ${
+              isExpanded 
+                ? "bottom-4 right-4 left-4 top-4 md:bottom-10 md:right-10 md:left-auto md:top-10 md:w-[700px]" 
+                : "bottom-20 right-4 md:right-20 w-[95vw] md:w-[500px] max-h-[80vh]"
+            }`}
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-primary/20 to-transparent border-b border-border">
+            <div className="p-4 bg-gradient-to-r from-primary/20 to-transparent border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -395,19 +401,18 @@ Qoidalar:
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {showUpgrade && (
-                    <button
-                      onClick={() => toast({
-                        title: "AI Pro",
-                        description: "AI Pro versiyasi tez orada keladi! 🚀",
-                      })}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30 text-amber-400 text-xs font-medium transition-all"
-                    >
-                      <Crown className="h-3 w-3" />
-                      Upgrade
-                    </button>
-                  )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    title={isExpanded ? "Kichiklashtirish" : "Kattalashtirish"}
+                  >
+                    {isExpanded ? (
+                      <Minimize2 className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
                   <button
                     onClick={clearChat}
                     className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
@@ -415,12 +420,19 @@ Qoidalar:
                   >
                     <RefreshCw className="h-4 w-4 text-muted-foreground" />
                   </button>
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    title="Yopish"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* Messages */}
-            <ScrollArea className="h-[380px] p-4" ref={scrollRef}>
+            <ScrollArea className={`flex-1 p-4 ${isExpanded ? "h-full" : "h-[400px]"}`} ref={scrollRef}>
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <div className="text-center mb-4">
