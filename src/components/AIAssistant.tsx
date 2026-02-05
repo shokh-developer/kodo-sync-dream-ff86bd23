@@ -332,7 +332,7 @@ Qoidalar:
     <>
       {/* Toggle Button */}
       <motion.div
-        className="fixed bottom-4 right-20 z-50"
+        className="fixed bottom-4 right-[136px] z-50"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
