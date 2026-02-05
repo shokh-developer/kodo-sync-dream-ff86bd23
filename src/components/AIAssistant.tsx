@@ -386,9 +386,9 @@ Qoidalar:
                   <div>
                     <h3 className="font-orbitron font-bold flex items-center gap-2">
                       CodeForge AI
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        Copilot
-                      </Badge>
+                      <span className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold bg-secondary text-secondary-foreground">
+                        Bepul
+                      </span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
                       Kod yozish, fayl yaratish, optimizatsiya

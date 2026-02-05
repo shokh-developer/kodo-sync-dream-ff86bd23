@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -40,10 +40,10 @@ ${code}
 
 Kodning davomini yoz (FAQAT kod, hech qanday tushuntirma yoki markdown emas):`;
     } else if (type === "explain") {
-      systemPrompt = `Sen tajribali dasturchi va o'qituvchisan. Kodni tushunarli qilib tushuntir.`;
+      systemPrompt = `Sen tajribali dasturchi va o'qituvchisan. Kodni tushunarli qilib tushuntir. O'zbek tilida javob ber.`;
       userPrompt = `Bu ${language} kodini tushuntir:\n\`\`\`${language}\n${code}\n\`\`\``;
     } else if (type === "fix") {
-      systemPrompt = `Sen tajribali dasturchi va debuggersan. Koddagi xatolarni top va to'g'irla.`;
+      systemPrompt = `Sen tajribali dasturchi va debuggersan. Koddagi xatolarni top va to'g'irla. O'zbek tilida javob ber.`;
       userPrompt = `Bu ${language} kodida xato bor. Xatoni top va to'g'rilangan kodni qaytaring:\n\`\`\`${language}\n${code}\n\`\`\``;
     } else if (type === "tests") {
       systemPrompt = `Sen test yozish bo'yicha mutaxassisan. Kod uchun unit testlar yoz.`;
@@ -85,13 +85,13 @@ Kodning davomini yoz (FAQAT kod, hech qanday tushuntirma yoki markdown emas):`;
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded" }),
+          JSON.stringify({ error: "Rate limit exceeded. Biroz kuting va qayta urinib ko'ring." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Credits exhausted" }),
+          JSON.stringify({ error: "AI xizmati bepul rejimda ishlayapti. Hozircha limitga yetdingiz." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
