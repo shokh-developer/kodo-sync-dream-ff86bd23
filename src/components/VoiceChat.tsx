@@ -118,7 +118,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40">
+    <div className="fixed bottom-4 right-4 z-50">
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -255,13 +255,14 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
       <motion.button
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          "p-3 rounded-full shadow-lg transition-colors relative",
+          "h-12 w-12 rounded-xl shadow-lg transition-all duration-200",
+          "flex items-center justify-center backdrop-blur-sm relative",
           isConnected
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-card border border-border text-foreground hover:bg-muted"
+            ? "bg-primary/20 text-primary border border-primary/50"
+            : "bg-card/90 border border-border text-foreground hover:border-primary/50 hover:bg-card"
         )}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         {isConnected ? (
           isMuted ? (
@@ -275,12 +276,12 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
         
         {/* Active indicator */}
         {isConnected && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
         )}
         
         {/* Participant count */}
         {activeParticipants.length > 0 && (
-          <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+          <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
             {activeParticipants.length}
           </span>
         )}

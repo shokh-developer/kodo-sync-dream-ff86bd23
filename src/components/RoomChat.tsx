@@ -141,14 +141,15 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
       {/* Chat Toggle Button */}
       <motion.button
         className={cn(
-          "fixed bottom-4 right-[70px] z-50 p-3 rounded-full shadow-lg transition-colors",
+          "fixed bottom-4 right-[68px] z-50 h-12 w-12 rounded-xl shadow-lg transition-all duration-200",
+          "flex items-center justify-center backdrop-blur-sm relative",
           isOpen
-            ? "bg-muted text-muted-foreground"
-            : "bg-secondary text-secondary-foreground"
+            ? "bg-secondary/20 text-secondary border border-secondary/50"
+            : "bg-card/90 text-foreground border border-border hover:border-secondary/50 hover:bg-card"
         )}
         onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         {isOpen ? (
           <X className="h-5 w-5" />
@@ -156,8 +157,8 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
           <>
             <MessageCircle className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {unreadCount > 99 ? "99+" : unreadCount}
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </>
@@ -172,7 +173,7 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 right-[70px] z-50 w-80 h-96 bg-card border border-border rounded-lg shadow-xl flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-[68px] z-50 w-80 h-96 bg-card border border-border rounded-xl shadow-xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">

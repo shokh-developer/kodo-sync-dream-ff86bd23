@@ -197,6 +197,12 @@ const Room = () => {
             roomName={room.name}
             activeFileName={activeFile?.name}
             onlineUsers={onlineUsers}
+            files={files}
+            onFilesImported={async (importedFiles) => {
+              for (const file of importedFiles) {
+                await createFile(file.name, file.path, false, file.language, file.content);
+              }
+            }}
           />
         </div>
       </div>
