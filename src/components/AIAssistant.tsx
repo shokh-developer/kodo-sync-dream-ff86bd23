@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Maximize2, Minimize2 } from "lucide-react";
-// Badge import removed - using span instead
+import { cn } from "@/lib/utils";
 import {
   Bot,
   Send,
@@ -332,16 +332,20 @@ Qoidalar:
     <>
       {/* Toggle Button */}
       <motion.div
-        className="fixed bottom-4 right-[136px] z-50"
+        className="fixed bottom-4 right-[132px] z-50"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
-        <MangaButton
-          variant="primary"
-          size="icon"
+        <button
           onClick={() => setIsOpen(!isOpen)}
-          className="h-14 w-14 rounded-full shadow-lg shadow-primary/30"
+          className={cn(
+            "h-12 w-12 rounded-xl shadow-lg transition-all duration-200",
+            "flex items-center justify-center backdrop-blur-sm",
+            isOpen
+              ? "bg-primary/20 text-primary border border-primary/50"
+              : "bg-card/90 text-primary border border-border hover:border-primary/50 hover:bg-card"
+          )}
           title={`Developed by ${author}`}
         >
           <AnimatePresence mode="wait">
@@ -352,7 +356,7 @@ Qoidalar:
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </motion.div>
             ) : (
               <motion.div
@@ -361,11 +365,11 @@ Qoidalar:
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: -90, opacity: 0 }}
               >
-                <Sparkles className="h-6 w-6" />
+                <Sparkles className="h-5 w-5" />
               </motion.div>
             )}
           </AnimatePresence>
-        </MangaButton>
+        </button>
       </motion.div>
 
       {/* Chat Panel */}

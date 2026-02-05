@@ -3,12 +3,24 @@ import { Users, Copy, Check, Wifi, Share2, Hash, Flame } from "lucide-react";
 import { MangaButton } from "./MangaButton";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import ZipManager from "./ZipManager";
+
+interface FileItem {
+  id: string;
+  name: string;
+  path: string;
+  content: string;
+  language: string;
+  is_folder: boolean;
+}
 
 interface EditorHeaderProps {
   roomId: string;
   roomName: string;
   activeFileName?: string;
   onlineUsers?: number;
+  files?: FileItem[];
+  onFilesImported?: (files: { name: string; path: string; content: string; language: string }[]) => void;
 }
 
 const EditorHeader = ({
@@ -16,6 +28,8 @@ const EditorHeader = ({
   roomName,
   activeFileName,
   onlineUsers = 1,
+  files = [],
+  onFilesImported,
 }: EditorHeaderProps) => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -87,18 +101,27 @@ const EditorHeader = ({
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* ZIP Manager */}
+        {onFilesImported && (
+          <ZipManager 
+            files={files} 
+            onFilesImported={onFilesImported}
+            roomName={roomName}
+          />
+        )}
+
         {/* Sync status */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
           <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
           <span className="hidden lg:inline">Sinxron</span>
         </div>
 
         {/* Online users indicator */}
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/20 border border-accent/50">
-          <Wifi className="h-3.5 w-3.5 text-accent animate-pulse" />
-          <Users className="h-3.5 w-3.5 text-accent" />
-          <span className="text-sm font-medium text-accent">{onlineUsers}</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border">
+          <Wifi className="h-3.5 w-3.5 text-accent" />
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">{onlineUsers}</span>
         </div>
 
         {/* Share button */}
