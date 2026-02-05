@@ -4,7 +4,7 @@ import { useRoom, useFiles, joinRoom } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
-import CodeEditor from "@/components/CodeEditor";
+import CodeEditorWithAI from "@/components/CodeEditorWithAI";
 import FileExplorer from "@/components/FileExplorer";
 import EditorTabs from "@/components/EditorTabs";
 import EditorHeader from "@/components/EditorHeader";
@@ -235,10 +235,11 @@ const Room = () => {
           {/* Editor */}
           <div className="flex-1 overflow-hidden">
             {activeFile ? (
-              <CodeEditor
+              <CodeEditorWithAI
                 code={localContent}
                 language={activeFile.language}
                 onChange={handleCodeChange}
+                files={files}
               />
             ) : (
               <EditorWelcome />
