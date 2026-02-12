@@ -124,121 +124,87 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
   const buildWebPreview = (): string => {
     const { htmlFiles, cssFiles, jsFiles, tsxFiles } = gatherWebFiles();
     
-    // Combine all CSS
     const allCss = cssFiles.map(f => f.content).join('\n');
-    
-    // Combine all JS
     const allJs = jsFiles.map(f => f.content).join('\n');
-    
-    // Check if there's TSX/JSX code
     const hasTsx = tsxFiles.length > 0 || language === 'tsx' || language === 'jsx';
     const allTsx = tsxFiles.map(f => f.content).join('\n');
     
-    // Find the main HTML file or use a template
-    let mainHtml = '';
+    // Collect ALL code for library detection
+    const allCode = [code, allCss, allJs, allTsx, ...htmlFiles.map(f => f.content)].join('\n');
     
+    let mainHtml = '';
     if (language === 'html') {
       mainHtml = code;
     } else {
-      // Find an HTML file in the same path
       const htmlFile = htmlFiles.find(f => f.path === (activeFile?.path || '/')) || htmlFiles[0];
       mainHtml = htmlFile?.content || '';
     }
 
-    // If we have an HTML file, inject CSS and JS into it
     if (mainHtml) {
       let result = mainHtml;
       
-      // Inject CSS
       if (allCss) {
         const cssTag = `<style>\n${allCss}\n</style>`;
-        if (result.includes('</head>')) {
-          result = result.replace('</head>', `${cssTag}\n</head>`);
-        } else if (result.includes('<body')) {
-          result = result.replace('<body', `${cssTag}\n<body`);
-        } else {
-          result = cssTag + '\n' + result;
-        }
+        if (result.includes('</head>')) result = result.replace('</head>', `${cssTag}\n</head>`);
+        else if (result.includes('<body')) result = result.replace('<body', `${cssTag}\n<body`);
+        else result = cssTag + '\n' + result;
       }
       
-      // If current file is CSS, also inject it
       if (language === 'css') {
-        const currentCssTag = `<style>\n/* ${activeFile?.name || 'style.css'} */\n${code}\n</style>`;
-        if (result.includes('</head>')) {
-          result = result.replace('</head>', `${currentCssTag}\n</head>`);
-        } else {
-          result = currentCssTag + '\n' + result;
-        }
+        const currentCssTag = `<style>\n${code}\n</style>`;
+        if (result.includes('</head>')) result = result.replace('</head>', `${currentCssTag}\n</head>`);
+        else result = currentCssTag + '\n' + result;
       }
       
-      // Inject JS
-      const jsCode = language === 'javascript' ? code + '\n' + allJs : allJs + (language === 'javascript' ? '\n' + code : '');
+      const jsCode = language === 'javascript' ? code + '\n' + allJs : allJs;
       if (jsCode.trim()) {
-        const jsTag = `<script>\n${jsCode}\n</script>`;
-        if (result.includes('</body>')) {
-          result = result.replace('</body>', `${jsTag}\n</body>`);
-        } else {
-          result += '\n' + jsTag;
-        }
+        const jsTag = `<script>\ntry {\n${jsCode}\n} catch(e) { console.error(e); }\n<\/script>`;
+        if (result.includes('</body>')) result = result.replace('</body>', `${jsTag}\n</body>`);
+        else result += '\n' + jsTag;
       }
 
-      // Inject TSX/JSX with React
       if (hasTsx) {
         const tsxCode = (language === 'tsx' || language === 'jsx') ? code : allTsx;
-        if (tsxCode.trim()) {
-          result = injectReactSupport(result, tsxCode);
-        }
+        if (tsxCode.trim()) result = injectReactSupport(result, tsxCode);
       }
 
-      return wrapWithDarkBg(result);
+      return wrapWithDarkBg(result, allCode);
     }
 
-    // No HTML file - generate one
+    // No HTML file — generate based on language
     if (language === 'css') {
-      return wrapWithDarkBg(`<!DOCTYPE html>
-<html><head><style>${allCss}\n${code}</style></head>
-<body><div class="preview-container">
-<h1>CSS Preview</h1>
-<p>Bu CSS fayl. HTML faylga bog'lang yoki HTML fayl yarating.</p>
-<div class="box">Box</div><button class="btn">Button</button>
-<input type="text" placeholder="Input" /><a href="#">Link</a>
-</div></body></html>`);
+      return wrapWithDarkBg(`<!DOCTYPE html><html><head><style>${allCss}\n${code}</style></head>
+<body><div style="padding:20px"><h1>CSS Preview</h1><p>HTML fayl yarating yoki elementlar qo'shing.</p>
+<div class="box" style="width:100px;height:100px;background:#7c3aed;border-radius:8px;margin:16px 0"></div>
+<button style="padding:8px 16px;border-radius:4px;border:none;background:#7c3aed;color:white;cursor:pointer">Button</button>
+</div></body></html>`, allCode);
     }
 
     if (language === 'javascript') {
-      // Pure JS - run in console mode, but also try to render if it has DOM manipulation
-      return wrapWithDarkBg(`<!DOCTYPE html>
-<html><head>
-<style>${allCss}</style>
-</head><body>
-<div id="app"></div>
-<div id="root"></div>
-<div id="output"></div>
+      return wrapWithDarkBg(`<!DOCTYPE html><html><head><style>${allCss}</style></head><body>
+<div id="app"></div><div id="root"></div><div id="output"></div>
 <script>
-// Console output capture
 const _output = document.getElementById('output');
 const _origLog = console.log;
 console.log = function(...args) {
   _origLog.apply(console, args);
   const p = document.createElement('pre');
-  p.style.cssText = 'color: #a9dc76; margin: 2px 0; font-family: monospace;';
-  p.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+  p.style.cssText = 'color:#a9dc76;margin:2px 0;font-family:monospace;';
+  p.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a,null,2) : String(a)).join(' ');
   _output.appendChild(p);
 };
 console.error = function(...args) {
   const p = document.createElement('pre');
-  p.style.cssText = 'color: #ff6188; margin: 2px 0; font-family: monospace;';
+  p.style.cssText = 'color:#ff6188;margin:2px 0;font-family:monospace;';
   p.textContent = args.map(a => String(a)).join(' ');
   _output.appendChild(p);
 };
-try {
-${code}
-} catch(e) { console.error(e.message); }
-</script></body></html>`);
+try { ${code} } catch(e) { console.error(e.message); }
+<\/script></body></html>`, allCode);
     }
 
     if (language === 'tsx' || language === 'jsx') {
-      return wrapWithDarkBg(buildTsxPreview(code, allCss));
+      return wrapWithDarkBg(buildTsxPreview(code, allCss), allCode);
     }
 
     return '';
@@ -314,65 +280,85 @@ try {
     return html;
   };
 
-  // All popular web dev CDN libraries
-  const webLibraries = `
-<!-- Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
-<!-- Font Awesome Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<!-- Bootstrap 5 -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Tailwind CSS (CDN) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- Animate.css -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-<!-- AOS (Animate On Scroll) -->
-<link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<!-- GSAP Animation -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<!-- Anime.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-<!-- Three.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<!-- Lodash -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
-<!-- Axios -->
-<script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
-<!-- Moment.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<!-- Typed.js -->
-<script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
-<!-- Particles.js -->
-<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-<!-- AOS JS -->
-<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-<!-- Swiper -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-<!-- ScrollReveal -->
-<script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
-<!-- Prism.js (Code Highlighting) -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<!-- Vue.js 3 -->
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-<!-- Alpine.js -->
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-`;
+  // Detect which libraries the code actually uses
+  const detectUsedLibraries = (allCode: string): string => {
+    const libs: string[] = [];
+    
+    // Fonts - always light
+    libs.push('<link rel="preconnect" href="https://fonts.googleapis.com">');
+    libs.push('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
+    libs.push('<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">');
+    
+    // Only load libraries that are actually referenced in code
+    if (/fa-|font-awesome|fas |fab |far /i.test(allCode))
+      libs.push('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">');
+    
+    if (/class=".*\b(container|row|col-|btn |btn-|navbar|modal|card |carousel)/i.test(allCode) || /bootstrap/i.test(allCode)) {
+      libs.push('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">');
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"><\/script>');
+    }
+    
+    if (/class=".*\b(flex |grid |bg-|text-|p-|m-|w-|h-|rounded|shadow|border)/i.test(allCode) || /tailwind/i.test(allCode))
+      libs.push('<script src="https://cdn.tailwindcss.com"><\/script>');
+    
+    if (/animate__/i.test(allCode))
+      libs.push('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">');
+    
+    if (/\bAOS\b|data-aos/i.test(allCode)) {
+      libs.push('<link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">');
+      libs.push('<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"><\/script>');
+    }
+    
+    if (/\$\(|jQuery/i.test(allCode))
+      libs.push('<script src="https://code.jquery.com/jquery-3.7.1.min.js"><\/script>');
+    
+    if (/\bgsap\b|TweenMax|TimelineMax|ScrollTrigger/i.test(allCode)) {
+      libs.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>');
+      libs.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"><\/script>');
+    }
+    
+    if (/\banime\b\(/i.test(allCode))
+      libs.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"><\/script>');
+    
+    if (/THREE\.|three\.js/i.test(allCode))
+      libs.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
+    
+    if (/\bChart\b|new Chart/i.test(allCode))
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+    
+    if (/\b_\.\w+|lodash/i.test(allCode))
+      libs.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"><\/script>');
+    
+    if (/\baxios\b/i.test(allCode))
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"><\/script>');
+    
+    if (/\bSwal\b|sweetalert/i.test(allCode))
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>');
+    
+    if (/\bTyped\b/i.test(allCode))
+      libs.push('<script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"><\/script>');
+    
+    if (/particlesJS|particles\.js/i.test(allCode))
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"><\/script>');
+    
+    if (/\bSwiper\b/i.test(allCode)) {
+      libs.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">');
+      libs.push('<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"><\/script>');
+    }
+    
+    if (/ScrollReveal/i.test(allCode))
+      libs.push('<script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"><\/script>');
+    
+    if (/\bVue\b|createApp|v-if|v-for/i.test(allCode))
+      libs.push('<script src="https://unpkg.com/vue@3/dist/vue.global.js"><\/script>');
+    
+    if (/x-data|x-show|x-bind|Alpine/i.test(allCode))
+      libs.push('<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"><\/script>');
+    
+    return libs.join('\n');
+  };
 
-  const wrapWithDarkBg = (html: string): string => {
+  const wrapWithDarkBg = (html: string, allCode?: string): string => {
     const darkStyle = `<style>
 html, body { 
   background: #1a1a2e !important; 
@@ -383,14 +369,15 @@ html, body {
 * { box-sizing: border-box; }
 </style>`;
     
-    const headContent = darkStyle + '\n' + webLibraries;
+    const libs = detectUsedLibraries(allCode || html);
+    const headContent = darkStyle + '\n' + libs;
     
     if (html.includes('<head>')) {
       return html.replace('<head>', `<head>\n${headContent}`);
     } else if (html.includes('<!DOCTYPE')) {
       return html.replace(/(<html[^>]*>)/, `$1<head>${headContent}</head>`);
     }
-    return headContent + html;
+    return `<!DOCTYPE html><html><head>${headContent}</head><body>${html}</body></html>`;
   };
 
   // Run web preview in iframe
