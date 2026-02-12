@@ -254,37 +254,60 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
         return;
       }
 
-      if (!data.success) {
-        addLog("error", `❌ Xatolik: ${data.error}`);
+      handleServerResult(data);
+    } catch (err: any) {
+      addLog("error", `❌ Xatolik: ${err.message}`);
+    }
+  };
+
+  // Terminal buyruqlaridan foydalanish uchun
+  const runCommandOnServer = async (lang: string, codeToRun: string, stdin: string = "") => {
+    try {
+      setIsRunning(true);
+      const { data, error } = await supabase.functions.invoke("run-code", {
+        body: { code: codeToRun, language: lang, stdin },
+      });
+
+      if (error) {
+        addLog("error", `❌ Server xatosi: ${error.message}`);
         return;
       }
 
-      // Show compile output if exists
-      if (data.compile) {
-        if (data.compile.stderr) {
-          addLog("compile", `⚙️ Kompilyatsiya xatosi:\n${data.compile.stderr}`);
-        }
-        if (data.compile.stdout) {
-          addLog("compile", `⚙️ Kompilyatsiya:\n${data.compile.stdout}`);
-        }
-      }
-
-      // Show run output
-      if (data.run) {
-        if (data.run.stdout) {
-          addLog("result", data.run.stdout);
-        }
-        if (data.run.stderr) {
-          addLog("error", data.run.stderr);
-        }
-        if (data.run.code === 0) {
-          addLog("info", `✅ Dastur muvaffaqiyatli bajarildi! (${data.language} ${data.version})`);
-        } else if (data.run.code !== undefined) {
-          addLog("warn", `⚠️ Dastur ${data.run.code} kodi bilan tugadi`);
-        }
-      }
+      handleServerResult(data);
     } catch (err: any) {
       addLog("error", `❌ Xatolik: ${err.message}`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleServerResult = (data: any) => {
+    if (!data.success) {
+      addLog("error", `❌ Xatolik: ${data.error}`);
+      return;
+    }
+
+    if (data.compile) {
+      if (data.compile.stderr) {
+        addLog("compile", `⚙️ Kompilyatsiya xatosi:\n${data.compile.stderr}`);
+      }
+      if (data.compile.stdout) {
+        addLog("compile", `⚙️ Kompilyatsiya:\n${data.compile.stdout}`);
+      }
+    }
+
+    if (data.run) {
+      if (data.run.stdout) {
+        addLog("result", data.run.stdout);
+      }
+      if (data.run.stderr) {
+        addLog("error", data.run.stderr);
+      }
+      if (data.run.code === 0) {
+        addLog("info", `✅ Muvaffaqiyatli bajarildi! (${data.language} ${data.version})`);
+      } else if (data.run.code !== undefined) {
+        addLog("warn", `⚠️ Dastur ${data.run.code} kodi bilan tugadi`);
+      }
     }
   };
 
@@ -501,21 +524,130 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
                     <span className="text-primary font-mono text-sm">$</span>
                     <input
                       type="text"
-                      placeholder="Buyruq yozing yoki Enter bosib kodni ishga tushiring..."
+                      placeholder="run, help, node file.js, python main.py..."
                       className="flex-1 bg-transparent text-foreground font-mono text-sm outline-none placeholder:text-muted-foreground/50"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const value = e.currentTarget.value.trim();
-                          if (value === 'run' || value === '') {
+                          if (!value) return;
+                          
+                          e.currentTarget.value = '';
+                          addLog('info', `$ ${value}`);
+                          
+                          if (value === 'run') {
                             handleRunClick();
                           } else if (value === 'clear' || value === 'cls') {
                             clearLogs();
+                          } else if (value === 'help') {
+                            addLog('info', '📋 Mavjud buyruqlar:');
+                            addLog('log', '  run              - Joriy faylni ishga tushirish');
+                            addLog('log', '  clear / cls      - Terminalni tozalash');
+                            addLog('log', '  echo <matn>      - Matnni chop etish');
+                            addLog('log', '  node <fayl/kod>  - JavaScript ishga tushirish');
+                            addLog('log', '  python <fayl/kod>- Python ishga tushirish');
+                            addLog('log', '  g++ <fayl>       - C++ kompilyatsiya va run');
+                            addLog('log', '  java <fayl>      - Java ishga tushirish');
+                            addLog('log', '  go run <fayl>    - Go ishga tushirish');
+                            addLog('log', '  swift <fayl/kod> - Swift ishga tushirish');
+                            addLog('log', '  ruby/php/lua/bash/perl <fayl/kod>');
+                            addLog('log', '  exec <til> <kod> - Istalgan tilda kod');
+                            addLog('log', '  ls / dir         - Fayllar ro\'yxati');
+                            addLog('log', '  cat <fayl>       - Fayl tarkibini ko\'rish');
+                            addLog('log', '  date             - Sana');
+                            addLog('log', '  whoami           - Foydalanuvchi');
                           } else if (value.startsWith('echo ')) {
                             addLog('log', value.substring(5));
+                          } else if (value === 'ls' || value === 'dir') {
+                            if (files && files.length > 0) {
+                              const fileList = files.map(f => 
+                                `${f.is_folder ? '📁' : '📄'} ${f.path}${f.name}`
+                              ).join('\n');
+                              addLog('log', fileList);
+                            } else {
+                              addLog('info', 'Fayllar mavjud emas');
+                            }
+                          } else if (value.startsWith('cat ')) {
+                            const fileName = value.substring(4).trim();
+                            const file = files?.find(f => f.name === fileName || (f.path + f.name) === fileName);
+                            if (file && !file.is_folder) {
+                              addLog('log', file.content || '(bo\'sh fayl)');
+                            } else {
+                              addLog('error', `Fayl topilmadi: ${fileName}`);
+                            }
+                          } else if (value === 'date') {
+                            addLog('log', new Date().toLocaleString());
+                          } else if (value === 'whoami') {
+                            addLog('log', 'CodeForge foydalanuvchisi');
+                          } else if (value.startsWith('exec ')) {
+                            const parts = value.substring(5).trim();
+                            const spaceIdx = parts.indexOf(' ');
+                            if (spaceIdx > 0) {
+                              const lang = parts.substring(0, spaceIdx).trim();
+                              const execCode = parts.substring(spaceIdx + 1).trim();
+                              runCommandOnServer(lang, execCode);
+                            } else {
+                              addLog('error', 'Format: exec <til> <kod>');
+                            }
+                          } else if (value.startsWith('node ')) {
+                            const arg = value.substring(5).trim();
+                            const file = files?.find(f => f.name === arg);
+                            if (file) {
+                              runCommandOnServer('javascript', file.content);
+                            } else {
+                              runCommandOnServer('javascript', arg);
+                            }
+                          } else if (value.startsWith('python ') || value.startsWith('python3 ')) {
+                            const arg = value.replace(/^python3?\s+/, '').trim();
+                            const file = files?.find(f => f.name === arg);
+                            if (file) {
+                              runCommandOnServer('python', file.content);
+                            } else {
+                              runCommandOnServer('python', arg);
+                            }
+                          } else if (value.startsWith('g++ ') || value.startsWith('gcc ')) {
+                            const cppFile = value.split(' ').pop()?.trim();
+                            const file = files?.find(f => f.name === cppFile);
+                            if (file) {
+                              runCommandOnServer(value.startsWith('g++') ? 'cpp' : 'c', file.content);
+                            } else {
+                              addLog('error', `Fayl topilmadi: ${cppFile}`);
+                            }
+                          } else if (value.startsWith('java ') || value.startsWith('javac ')) {
+                            const jFile = value.split(' ').pop()?.trim();
+                            const file = files?.find(f => f.name === jFile);
+                            if (file) {
+                              runCommandOnServer('java', file.content);
+                            } else {
+                              addLog('error', `Fayl topilmadi: ${jFile}`);
+                            }
+                          } else if (value.startsWith('go run ')) {
+                            const goFile = value.substring(7).trim();
+                            const file = files?.find(f => f.name === goFile);
+                            if (file) {
+                              runCommandOnServer('go', file.content);
+                            } else {
+                              addLog('error', `Fayl topilmadi: ${goFile}`);
+                            }
+                          } else if (value.startsWith('swift ')) {
+                            const arg = value.substring(6).trim();
+                            const file = files?.find(f => f.name === arg);
+                            runCommandOnServer('swift', file ? file.content : arg);
+                          } else if (/^(ruby|php|lua|bash|sh|perl|kotlin|dart|rust|scala|r)\s/.test(value)) {
+                            const cmdParts = value.split(' ');
+                            let cmdLang = cmdParts[0] === 'sh' ? 'bash' : cmdParts[0];
+                            const cmdArg = cmdParts.slice(1).join(' ').trim();
+                            const file = files?.find(f => f.name === cmdArg);
+                            runCommandOnServer(cmdLang, file ? file.content : cmdArg);
+                          } else if (value.startsWith('npm ') || value.startsWith('yarn ') || value.startsWith('npx ')) {
+                            addLog('warn', '⚠️ npm/yarn/npx serverda qo\'llab-quvvatlanmaydi.');
+                            addLog('info', '💡 "node <fayl>" yoki "run" buyrug\'idan foydalaning.');
+                          } else if (value.startsWith('pip ') || value.startsWith('pip3 ')) {
+                            addLog('warn', '⚠️ pip serverda qo\'llab-quvvatlanmaydi.');
+                            addLog('info', '💡 "python <fayl/kod>" buyrug\'idan foydalaning.');
                           } else {
-                            addLog('info', `> ${value}`);
+                            addLog('warn', `Noma'lum buyruq: ${value}`);
+                            addLog('info', '💡 "help" yozing buyruqlarni ko\'rish uchun');
                           }
-                          e.currentTarget.value = '';
                         }
                       }}
                     />
