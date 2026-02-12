@@ -5,10 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Piston API - free code execution engine
 const PISTON_API = "https://emkc.org/api/v2/piston/execute";
 
-// Language mappings for Piston API
+// Extended language mappings
 const languageMap: Record<string, { language: string; version: string }> = {
   javascript: { language: "javascript", version: "18.15.0" },
   typescript: { language: "typescript", version: "5.0.3" },
@@ -21,10 +20,18 @@ const languageMap: Record<string, { language: string; version: string }> = {
   php: { language: "php", version: "8.2.3" },
   ruby: { language: "ruby", version: "3.0.1" },
   csharp: { language: "csharp", version: "6.12.0" },
+  swift: { language: "swift", version: "5.3.3" },
+  kotlin: { language: "kotlin", version: "1.8.20" },
+  dart: { language: "dart", version: "2.19.6" },
+  lua: { language: "lua", version: "5.4.4" },
+  perl: { language: "perl", version: "5.36.0" },
+  r: { language: "r", version: "4.1.1" },
+  scala: { language: "scala", version: "3.2.2" },
+  bash: { language: "bash", version: "5.2.0" },
+  sql: { language: "sqlite3", version: "3.36.0" },
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -53,21 +60,13 @@ serve(async (req) => {
 
     console.log(`Executing ${language} code with stdin: ${stdin ? 'yes' : 'no'}`);
 
-    // Call Piston API
     const response = await fetch(PISTON_API, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         language: langConfig.language,
         version: langConfig.version,
-        files: [
-          {
-            name: getFileName(language),
-            content: code,
-          },
-        ],
+        files: [{ name: getFileName(language), content: code }],
         stdin: stdin || "",
         args: [],
         compile_timeout: 10000,
@@ -85,9 +84,7 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log("Execution result:", result);
 
-    // Format the response
     const output = {
       success: true,
       language: result.language,
@@ -133,6 +130,15 @@ function getFileName(language: string): string {
     php: "index.php",
     ruby: "main.rb",
     csharp: "Program.cs",
+    swift: "main.swift",
+    kotlin: "Main.kt",
+    dart: "main.dart",
+    lua: "main.lua",
+    perl: "main.pl",
+    r: "main.r",
+    scala: "Main.scala",
+    bash: "main.sh",
+    sql: "main.sql",
   };
   return extensions[language] || "main.txt";
 }

@@ -199,6 +199,30 @@ const Room = () => {
             onlineUsers={onlineUsers}
             files={files}
             onFilesImported={async (importedFiles) => {
+              // First create all unique folders
+              const folderPaths = new Set<string>();
+              for (const file of importedFiles) {
+                // Extract all intermediate folder paths
+                const parts = file.path.split("/").filter(Boolean);
+                let currentPath = "/";
+                for (const part of parts) {
+                  const folderFullPath = currentPath + part + "/";
+                  folderPaths.add(JSON.stringify({ name: part, path: currentPath }));
+                  currentPath = folderFullPath;
+                }
+              }
+              
+              // Create folders first
+              for (const folderJson of folderPaths) {
+                const { name, path } = JSON.parse(folderJson);
+                // Check if folder already exists
+                const exists = files.some(f => f.is_folder && f.name === name && f.path === path);
+                if (!exists) {
+                  await createFile(name, path, true);
+                }
+              }
+
+              // Then create files
               for (const file of importedFiles) {
                 await createFile(file.name, file.path, false, file.language, file.content);
               }

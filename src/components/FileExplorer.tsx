@@ -77,6 +77,30 @@ const getFileIcon = (name: string, language: string) => {
     case "h":
     case "hpp":
       return <FileCode className="h-4 w-4 text-blue-500" />;
+    case "java":
+      return <FileCode className="h-4 w-4 text-red-400" />;
+    case "go":
+      return <FileCode className="h-4 w-4 text-cyan-400" />;
+    case "rs":
+      return <FileCode className="h-4 w-4 text-orange-500" />;
+    case "php":
+      return <FileCode className="h-4 w-4 text-purple-400" />;
+    case "rb":
+      return <FileCode className="h-4 w-4 text-red-500" />;
+    case "swift":
+      return <FileCode className="h-4 w-4 text-orange-400" />;
+    case "kt":
+      return <FileCode className="h-4 w-4 text-violet-400" />;
+    case "dart":
+      return <FileCode className="h-4 w-4 text-sky-400" />;
+    case "lua":
+      return <FileCode className="h-4 w-4 text-indigo-400" />;
+    case "sh":
+      return <Terminal className="h-4 w-4 text-green-500" />;
+    case "sql":
+      return <FileCode className="h-4 w-4 text-yellow-500" />;
+    case "scala":
+      return <FileCode className="h-4 w-4 text-red-300" />;
     default:
       return <File className="h-4 w-4 text-muted-foreground" />;
   }
@@ -113,6 +137,32 @@ const getLanguageFromName = (name: string): string => {
     case "h":
     case "hpp":
       return "cpp";
+    case "java":
+      return "java";
+    case "go":
+      return "go";
+    case "rs":
+      return "rust";
+    case "php":
+      return "php";
+    case "rb":
+      return "ruby";
+    case "swift":
+      return "swift";
+    case "kt":
+      return "kotlin";
+    case "dart":
+      return "dart";
+    case "lua":
+      return "lua";
+    case "pl":
+      return "perl";
+    case "r":
+      return "r";
+    case "scala":
+      return "scala";
+    case "sh":
+      return "bash";
     default:
       return "plaintext";
   }
