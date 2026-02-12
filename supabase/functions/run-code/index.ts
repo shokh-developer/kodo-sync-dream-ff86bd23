@@ -10,7 +10,9 @@ const PISTON_API = "https://emkc.org/api/v2/piston/execute";
 // Extended language mappings
 const languageMap: Record<string, { language: string; version: string }> = {
   javascript: { language: "javascript", version: "18.15.0" },
+  jsx: { language: "javascript", version: "18.15.0" },
   typescript: { language: "typescript", version: "5.0.3" },
+  tsx: { language: "typescript", version: "5.0.3" },
   python: { language: "python", version: "3.10.0" },
   cpp: { language: "c++", version: "10.2.0" },
   c: { language: "c", version: "10.2.0" },
