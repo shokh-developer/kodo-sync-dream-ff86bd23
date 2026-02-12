@@ -42,10 +42,10 @@ interface LogEntry {
 const browserLanguages = ["javascript", "html", "css"];
 
 // Languages supported by backend
-const backendLanguages = ["javascript", "typescript", "python", "cpp", "c", "java", "go", "rust", "php", "ruby", "csharp"];
+const backendLanguages = ["javascript", "typescript", "python", "cpp", "c", "java", "go", "rust", "php", "ruby", "csharp", "swift", "kotlin", "dart", "lua", "perl", "r", "scala", "bash", "sql"];
 
 // Languages that typically need input
-const inputLanguages = ["cpp", "c", "python", "java", "go", "rust", "csharp"];
+const inputLanguages = ["cpp", "c", "python", "java", "go", "rust", "csharp", "kotlin", "dart", "swift"];
 
 // File extensions to language mapping
 const getLanguageFromExt = (ext: string): string => {
@@ -65,6 +65,15 @@ const getLanguageFromExt = (ext: string): string => {
     php: "php",
     rb: "ruby",
     cs: "csharp",
+    swift: "swift",
+    kt: "kotlin",
+    dart: "dart",
+    lua: "lua",
+    pl: "perl",
+    r: "r",
+    scala: "scala",
+    sh: "bash",
+    sql: "sql",
   };
   return map[ext] || "plaintext";
 };
@@ -460,6 +469,10 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
                         <span className="px-2 py-1 rounded bg-muted/30">C++</span>
                         <span className="px-2 py-1 rounded bg-muted/30">Java</span>
                         <span className="px-2 py-1 rounded bg-muted/30">HTML+CSS</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Swift</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Kotlin</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Go</span>
+                        <span className="px-2 py-1 rounded bg-muted/30">Rust</span>
                       </div>
                     </div>
                   ) : (
