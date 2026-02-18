@@ -15,8 +15,21 @@ import {
 import { createRoom } from "@/hooks/useFiles";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
-import { Code, Users, Zap, ArrowRight, Plus, LogIn, Flame, Terminal, User, LogOut, Settings } from "lucide-react";
+import { Code, Users, Zap, ArrowRight, Plus, LogIn, Terminal, User, LogOut, Settings, Sparkles, Layers, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
 
 const Index = () => {
   const [roomName, setRoomName] = useState("");
@@ -87,7 +100,7 @@ const Index = () => {
 
   const features = [
     {
-      icon: Code,
+      icon: Layers,
       title: "10+ Tillar",
       description: "C++, Python, JavaScript, Java, Go, Rust, TypeScript va boshqalar",
       color: "pink" as const,
@@ -107,13 +120,25 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-night speed-lines">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 bg-hero-glow pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-night pointer-events-none" />
+      
+      {/* Ambient glow orbs */}
+      <div className="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/[0.04] blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/[0.04] blur-[120px] pointer-events-none" />
+
       {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="h-6 w-6 text-primary" />
-            <span className="font-jetbrains font-bold text-foreground">CodeForge</span>
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/60 backdrop-blur-xl">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-space font-bold text-foreground text-lg tracking-tight">
+              CodeForge
+            </span>
           </div>
 
           {loading ? (
@@ -121,34 +146,34 @@ const Index = () => {
           ) : isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <Avatar className="h-8 w-8">
+                <button className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/50 transition-colors">
+                  <Avatar className="h-7 w-7">
                     <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <AvatarFallback className="bg-primary/15 text-primary text-xs font-medium">
                       {getInitials(profile?.display_name || user?.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm text-foreground hidden sm:inline">
+                  <span className="text-sm text-foreground hidden sm:inline font-medium">
                     {profile?.display_name || user?.email?.split("@")[0]}
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="text-foreground cursor-pointer">
-                  <User className="h-4 w-4 mr-2" />
+              <DropdownMenuContent align="end" className="w-52 bg-card/95 backdrop-blur-xl border-border/50 rounded-xl p-1.5">
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
+                  <User className="h-4 w-4 mr-2.5 text-muted-foreground" />
                   Profil
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="text-foreground cursor-pointer">
-                  <Code className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
+                  <Code className="h-4 w-4 mr-2.5 text-muted-foreground" />
                   Mening xonalarim
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings")} className="text-foreground cursor-pointer">
-                  <Settings className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
+                  <Settings className="h-4 w-4 mr-2.5 text-muted-foreground" />
                   Sozlamalar
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
-                  <LogOut className="h-4 w-4 mr-2" />
+                <DropdownMenuSeparator className="my-1.5 bg-border/50" />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer rounded-lg px-3 py-2.5">
+                  <LogOut className="h-4 w-4 mr-2.5" />
                   Chiqish
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -159,7 +184,7 @@ const Index = () => {
               size="sm"
               onClick={() => setShowAuthModal(true)}
             >
-              <User className="h-4 w-4" />
+              <User className="h-3.5 w-3.5" />
               Kirish
             </MangaButton>
           )}
@@ -167,172 +192,180 @@ const Index = () => {
       </nav>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12 lg:py-20 pt-24">
+      <div className="container mx-auto px-6 pt-32 pb-20 relative z-10">
         {/* Header */}
         <motion.header
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          className="text-center mb-20"
+          variants={container}
+          initial="hidden"
+          animate="show"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <motion.div
-              initial={{ rotate: -10, scale: 0 }}
-              animate={{ rotate: 0, scale: 1 }}
-              transition={{ delay: 0.3, type: "spring" }}
-            >
-              <Flame className="h-12 w-12 md:h-16 md:w-16 text-primary" />
-            </motion.div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-jetbrains font-bold">
-              <span className="text-gradient-tokyo">CODE</span>
-              <span className="text-foreground">FORGE</span>
-            </h1>
-          </div>
+          <motion.div variants={item} className="mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium tracking-wide">
+              <Globe className="h-3 w-3" />
+              Real-time Collaborative IDE
+            </span>
+          </motion.div>
+
+          <motion.h1 variants={item} className="text-5xl md:text-7xl lg:text-8xl font-space font-bold tracking-tight leading-[0.95] mb-6">
+            <span className="text-gradient-tokyo">Code</span>
+            <span className="text-foreground">Forge</span>
+          </motion.h1>
           
-          <p className="text-lg text-muted-foreground mb-2">
-            by <span className="text-primary font-semibold">shokh</span>
-          </p>
+          <motion.p variants={item} className="text-sm text-muted-foreground mb-4 font-medium">
+            by <span className="text-primary">shokh</span>
+          </motion.p>
           
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Do'stlaringiz bilan real-time rejimda kod yozing va ishga tushiring. 
-            <br className="hidden md:block" />
+          <motion.p variants={item} className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Do'stlaringiz bilan real-time rejimda kod yozing va ishga tushiring.
             C++, Python, JavaScript va 10+ til!
-          </p>
+          </motion.p>
         </motion.header>
 
         {/* Action Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-20">
+        <motion.div 
+          className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-24"
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
           {/* Create Room Card */}
-          <MangaCard glowColor="pink">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/20">
-                  <Plus className="h-6 w-6 text-primary" />
+          <motion.div variants={item}>
+            <MangaCard glowColor="pink" className="h-full">
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                    <Plus className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-space font-bold text-foreground">
+                      Yangi Xona
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Yangi coding sessiya boshlang
+                    </p>
+                  </div>
                 </div>
-                <h2 className="text-xl font-jetbrains font-bold text-foreground">
-                  Yangi Xona
-                </h2>
+                
+                <Input
+                  placeholder="Xona nomi..."
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl"
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
+                />
+                
+                <MangaButton
+                  variant="primary"
+                  className="w-full"
+                  size="lg"
+                  onClick={handleCreateRoom}
+                  disabled={isCreating}
+                >
+                  {isCreating ? "Yaratilmoqda..." : "Xona Yaratish"}
+                  <ArrowRight className="h-4 w-4" />
+                </MangaButton>
               </div>
-              
-              <p className="text-muted-foreground">
-                Yangi coding xonasi yarating va do'stlaringizni taklif qiling
-              </p>
-              
-              <Input
-                placeholder="Xona nomi..."
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
-              />
-              
-              <MangaButton
-                variant="primary"
-                className="w-full"
-                onClick={handleCreateRoom}
-                disabled={isCreating}
-              >
-                {isCreating ? "Yaratilmoqda..." : "Xona Yaratish"}
-                <ArrowRight className="h-4 w-4" />
-              </MangaButton>
-            </div>
-          </MangaCard>
+            </MangaCard>
+          </motion.div>
 
           {/* Join Room Card */}
-          <MangaCard glowColor="blue">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-secondary/20">
-                  <LogIn className="h-6 w-6 text-secondary" />
+          <motion.div variants={item}>
+            <MangaCard glowColor="blue" className="h-full">
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center">
+                    <LogIn className="h-5 w-5 text-secondary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-space font-bold text-foreground">
+                      Xonaga Qo'shilish
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Mavjud xonaga ulanish
+                    </p>
+                  </div>
                 </div>
-                <h2 className="text-xl font-jetbrains font-bold text-foreground">
-                  Xonaga Qo'shilish
-                </h2>
+                
+                <Input
+                  placeholder="Xona ID yoki to'liq link..."
+                  value={joinRoomId}
+                  onChange={(e) => setJoinRoomId(e.target.value)}
+                  className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl"
+                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
+                />
+                
+                <MangaButton
+                  variant="secondary"
+                  className="w-full"
+                  size="lg"
+                  onClick={handleJoinRoom}
+                >
+                  Qo'shilish
+                  <ArrowRight className="h-4 w-4" />
+                </MangaButton>
               </div>
-              
-              <p className="text-muted-foreground">
-                Mavjud xonaga xona ID yoki link orqali qo'shiling
-              </p>
-              
-              <Input
-                placeholder="Xona ID yoki to'liq link..."
-                value={joinRoomId}
-                onChange={(e) => setJoinRoomId(e.target.value)}
-                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-              />
-              
-              <MangaButton
-                variant="secondary"
-                className="w-full"
-                onClick={handleJoinRoom}
-              >
-                Qo'shilish
-                <ArrowRight className="h-4 w-4" />
-              </MangaButton>
-            </div>
-          </MangaCard>
-        </div>
+            </MangaCard>
+          </motion.div>
+        </motion.div>
 
         {/* Features */}
         <motion.div
-          className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
+          className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-20"
+          variants={container}
+          initial="hidden"
+          animate="show"
         >
           {features.map((feature, index) => (
-            <MangaCard key={index} glowColor={feature.color} className="text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.5 + index * 0.1, type: "spring" }}
-                className="inline-flex p-4 rounded-xl bg-gradient-tokyo mb-4"
-              >
-                <feature.icon className="h-8 w-8 text-primary-foreground" />
-              </motion.div>
-              <h3 className="text-lg font-jetbrains font-bold text-foreground mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
-            </MangaCard>
+            <motion.div key={index} variants={item}>
+              <MangaCard glowColor={feature.color} className="text-center py-8">
+                <div className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/10 mb-5">
+                  <feature.icon className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="text-base font-space font-bold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {feature.description}
+                </p>
+              </MangaCard>
+            </motion.div>
           ))}
         </motion.div>
 
         {/* Supported Languages */}
         <motion.div
-          className="mt-16 text-center"
+          className="text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
         >
-          <p className="text-sm text-muted-foreground mb-4">
-            Qo'llab-quvvatlanadigan tillar:
+          <p className="text-xs text-muted-foreground mb-4 uppercase tracking-widest font-medium">
+            Qo'llab-quvvatlanadigan tillar
           </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
             {["C++", "Python", "JavaScript", "TypeScript", "Java", "Go", "Rust", "PHP", "Ruby", "C#", "C"].map((lang) => (
-              <span
+              <motion.span
                 key={lang}
-                className="px-3 py-1 text-xs font-mono rounded-full bg-muted/50 text-muted-foreground border border-border hover:border-primary hover:text-primary transition-colors cursor-default"
+                className="px-3 py-1.5 text-xs font-jetbrains rounded-lg bg-muted/30 text-muted-foreground border border-border/50 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all duration-300 cursor-default"
+                whileHover={{ scale: 1.05 }}
               >
                 {lang}
-              </span>
+              </motion.span>
             ))}
           </div>
         </motion.div>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 mt-20">
-        <div className="container mx-auto px-4 text-center">
+      <footer className="border-t border-border/30 py-8 relative z-10">
+        <div className="container mx-auto px-6 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Flame className="h-5 w-5 text-primary" />
-            <span className="font-jetbrains font-bold text-foreground">CodeForge</span>
+            <Sparkles className="h-4 w-4 text-primary/60" />
+            <span className="font-space font-semibold text-foreground/80 text-sm">CodeForge</span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            by <span className="text-primary font-semibold">shokh</span> — 
+          <p className="text-muted-foreground text-xs">
+            by <span className="text-primary/80 font-medium">shokh</span> — 
             Real-time collaborative coding platform
           </p>
         </div>
