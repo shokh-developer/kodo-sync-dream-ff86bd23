@@ -61,9 +61,22 @@ const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: Termi
   const [stdinInput, setStdinInput] = useState("");
   const [activeTab, setActiveTab] = useState<"console" | "preview">("console");
   const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [expanded, setExpanded] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Convert previewHtml to blob URL for reliable rendering
+  useEffect(() => {
+    if (previewHtml) {
+      const blob = new Blob([previewHtml], { type: 'text/html; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl("");
+    }
+  }, [previewHtml]);
 
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -300,7 +313,9 @@ try {
   };
 
   const wrapWithPreviewShell = (html: string, allCode?: string): string => {
-    const baseStyle = `<style>
+    const baseStyle = `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
 html, body { 
   margin: 0; padding: 0; 
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -311,12 +326,17 @@ html, body {
     const libs = detectUsedLibraries(allCode || html);
     const headContent = baseStyle + '\n' + libs;
     
-    if (html.includes('<head>')) {
-      return html.replace('<head>', `<head>\n${headContent}`);
-    } else if (html.includes('<!DOCTYPE')) {
-      return html.replace(/(<html[^>]*>)/, `$1<head>${headContent}</head>`);
+    // Strip any existing doctype/html wrappers to avoid nesting
+    let bodyContent = html;
+    if (html.includes('<head>') || html.includes('<!DOCTYPE') || html.includes('<html')) {
+      // Already has structure, just inject into head
+      if (html.includes('<head>')) {
+        return html.replace('<head>', `<head>\n${headContent}`);
+      } else if (html.includes('<!DOCTYPE') || html.includes('<html')) {
+        return html.replace(/(<html[^>]*>)/i, `$1<head>${headContent}</head>`);
+      }
     }
-    return `<!DOCTYPE html><html><head>${headContent}</head><body>${html}</body></html>`;
+    return `<!DOCTYPE html><html><head>${headContent}</head><body>${bodyContent}</body></html>`;
   };
 
   const runWebPreview = () => {
@@ -559,9 +579,9 @@ html, body {
                     </button>
                   </div>
                   <div className="flex items-center gap-1">
-                    {activeTab === "preview" && previewHtml && (
+                    {activeTab === "preview" && previewUrl && (
                       <button
-                        onClick={() => { setPreviewHtml(""); setTimeout(() => setPreviewHtml(buildWebPreview()), 50); }}
+                        onClick={() => { const html = buildWebPreview(); setPreviewHtml(""); setTimeout(() => setPreviewHtml(html), 50); }}
                         className="p-1 rounded hover:bg-muted/50 transition-colors"
                         title="Yangilash"
                       >
@@ -717,12 +737,12 @@ html, body {
                 {/* Preview */}
                 {activeTab === "preview" && (
                   <div className="flex-1 overflow-hidden bg-background">
-                    {previewHtml ? (
+                    {previewUrl ? (
                       <iframe
                         ref={iframeRef}
-                        srcDoc={previewHtml}
+                        src={previewUrl}
                         className="w-full h-full border-0"
-                        sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+                        sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
                         title="Web Preview"
                       />
                     ) : (
