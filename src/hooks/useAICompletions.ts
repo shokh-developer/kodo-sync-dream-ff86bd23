@@ -62,7 +62,7 @@ export const useAICompletions = () => {
         return suggestion;
       } catch (error: any) {
         if (error.name !== "AbortError") {
-          console.error("Inline completion error:", error);
+          // Silently handle - don't spam console for rate limits
         }
         return null;
       } finally {

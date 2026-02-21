@@ -67,7 +67,7 @@ async function callAI(systemPrompt: string, userPrompt: string, temperature: num
 
   if (!resp.ok) {
     if (resp.status === 429) throw new Error("RATE_LIMIT");
-    if (resp.status === 402) throw new Error("PAYMENT_REQUIRED");
+    if (resp.status === 402) throw new Error("RATE_LIMIT"); // Treat 402 same as rate limit
     throw new Error(`Lovable AI error: ${resp.status}`);
   }
 
@@ -148,8 +148,8 @@ Kodning davomini yoz (FAQAT kod, hech qanday tushuntirma yoki markdown emas):`;
     }
     if (error.message === "PAYMENT_REQUIRED") {
       return new Response(
-        JSON.stringify({ error: "AI xizmati bepul rejimda ishlayapti." }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI xizmati hozir band. Biroz kuting va qayta urinib ko'ring." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
