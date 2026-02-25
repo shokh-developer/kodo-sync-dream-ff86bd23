@@ -25,6 +25,7 @@ export const useAICompletions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentSuggestion, setCurrentSuggestion] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const rateLimitCooldownRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Inline completion - Tab bilan qabul qilinadigan
@@ -41,6 +42,11 @@ export const useAICompletions = () => {
       }
       abortControllerRef.current = new AbortController();
 
+      // Skip if in rate limit cooldown
+      if (Date.now() < rateLimitCooldownRef.current) {
+        return null;
+      }
+
       setIsLoading(true);
       setCurrentSuggestion(null);
 
@@ -55,15 +61,19 @@ export const useAICompletions = () => {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Set 30s cooldown on rate limit
+          if (error.message?.includes("429") || error.message?.includes("Rate limit")) {
+            rateLimitCooldownRef.current = Date.now() + 30000;
+          }
+          throw error;
+        }
 
         const suggestion = data?.completion || null;
         setCurrentSuggestion(suggestion);
         return suggestion;
       } catch (error: any) {
-        if (error.name !== "AbortError") {
-          // Silently handle - don't spam console for rate limits
-        }
+        // Silently handle
         return null;
       } finally {
         setIsLoading(false);
