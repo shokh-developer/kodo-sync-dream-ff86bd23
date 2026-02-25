@@ -62,18 +62,21 @@ export const useAICompletions = () => {
         });
 
         if (error) {
-          // Set 30s cooldown on rate limit
-          if (error.message?.includes("429") || error.message?.includes("Rate limit")) {
-            rateLimitCooldownRef.current = Date.now() + 30000;
-          }
-          throw error;
+          // Set 60s cooldown on any error (likely rate limit)
+          rateLimitCooldownRef.current = Date.now() + 60000;
+          return null;
+        }
+
+        if (data?.error) {
+          rateLimitCooldownRef.current = Date.now() + 60000;
+          return null;
         }
 
         const suggestion = data?.completion || null;
         setCurrentSuggestion(suggestion);
         return suggestion;
       } catch (error: any) {
-        // Silently handle
+        rateLimitCooldownRef.current = Date.now() + 60000;
         return null;
       } finally {
         setIsLoading(false);

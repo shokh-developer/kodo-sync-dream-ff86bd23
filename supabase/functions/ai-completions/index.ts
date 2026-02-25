@@ -43,36 +43,50 @@ async function callAI(systemPrompt: string, userPrompt: string, temperature: num
     }
   }
 
-  // Fallback to Lovable AI
+  // Fallback to Lovable AI - try multiple models
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("No AI keys available");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature,
-      max_tokens: maxTokens,
-      stream: false,
-    }),
-  });
+  const models = [
+    "google/gemini-2.5-flash",
+    "google/gemini-2.5-flash-lite",
+    "google/gemini-3-flash-preview",
+  ];
 
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMIT");
-    if (resp.status === 402) throw new Error("RATE_LIMIT"); // Treat 402 same as rate limit
-    throw new Error(`Lovable AI error: ${resp.status}`);
+  for (const model of models) {
+    try {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature,
+          max_tokens: maxTokens,
+          stream: false,
+        }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+      console.error(`Lovable AI model ${model} failed: ${resp.status}`);
+      // If rate limited, try next model
+      if (resp.status === 429 || resp.status === 402) continue;
+      // For other errors, also try next
+    } catch (e) {
+      console.error(`Lovable AI model ${model} error:`, e);
+    }
   }
 
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "";
+  throw new Error("RATE_LIMIT");
 }
 
 serve(async (req) => {
