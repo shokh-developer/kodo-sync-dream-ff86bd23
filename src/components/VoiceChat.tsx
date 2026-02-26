@@ -86,13 +86,13 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
     setIsJoining(true);
     try {
       await joinVoice();
-      toast.success("Ovozli chatga qo'shildingiz");
+      toast.success("Joined voice chat");
     } catch (error: any) {
       console.error("Failed to join voice:", error);
       if (error.name === "NotAllowedError") {
-        toast.error("Mikrofon ruxsati berilmadi");
+        toast.error("Microphone permission was denied");
       } else {
-        toast.error("Ovozli chatga ulanib bo'lmadi");
+        toast.error("Could not connect to voice chat");
       }
     } finally {
       setIsJoining(false);
@@ -101,7 +101,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
 
   const handleLeave = () => {
     leaveVoice();
-    toast.info("Ovozli chatdan chiqdingiz");
+    toast.info("Left voice chat");
   };
 
   const getInitials = (name: string) => {
@@ -118,7 +118,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-4 right-4 z-[65]">
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -132,10 +132,10 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Volume2 className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-sm">Ovozli Chat</span>
+                  <span className="font-medium text-sm">Voice Chat</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {activeParticipants.length} kishi
+                  {activeParticipants.length} people
                 </span>
               </div>
             </div>
@@ -149,11 +149,11 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
                       <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                        {getInitials(profile?.display_name || "Siz")}
+                        {getInitials(profile?.display_name || "You")}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm flex-1 truncate">
-                      {profile?.display_name || "Siz"}
+                      {profile?.display_name || "You"}
                     </span>
                     {isMuted ? (
                       <MicOff className="h-4 w-4 text-destructive" />
@@ -182,7 +182,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
 
                   {peers.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-2">
-                      Hozircha faqat siz borsiz
+                      Only you are here for now
                     </p>
                   )}
                 </>
@@ -190,7 +190,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
                 <div className="text-center py-4">
                   <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
                   <p className="text-sm text-muted-foreground">
-                    Qo'shilish uchun tugmani bosing
+                    Click the button to join
                   </p>
                 </div>
               )}
@@ -222,7 +222,7 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
                     className="h-9 px-4"
                   >
                     <PhoneOff className="h-4 w-4 mr-2" />
-                    Chiqish
+                    Leave
                   </Button>
                 </div>
               ) : (
@@ -236,12 +236,12 @@ const VoiceChat = ({ roomId }: VoiceChatProps) => {
                   {isJoining ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Ulanmoqda...
+                      Connecting...
                     </>
                   ) : (
                     <>
                       <Phone className="h-4 w-4 mr-2" />
-                      Qo'shilish
+                      Join
                     </>
                   )}
                 </Button>

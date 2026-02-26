@@ -41,29 +41,6 @@ const CodeEditorWithAI = ({
   readOnly = false,
   files = [],
 }: CodeEditorWithAIProps) => {
-  const getMonacoLanguage = (lang: string) => {
-    switch (lang) {
-      case "scss":
-      case "sass":
-        return "scss";
-      case "sql":
-        return "sql";
-      case "php":
-        return "php";
-      case "vue":
-      case "svelte":
-        return "html";
-      case "react":
-      case "nodejs":
-        return "javascript";
-      case "nextjs":
-      case "angular":
-        return "typescript";
-      default:
-        return lang;
-    }
-  };
-
   const [mounted, setMounted] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [actionPosition, setActionPosition] = useState({ x: 0, y: 0 });
@@ -313,8 +290,8 @@ const CodeEditorWithAI = ({
       if (codeMatch) {
         onChange(codeMatch[1].trim());
         toast({
-          title: "Kod qo'llanildi",
-          description: "AI tavsiyasi muvaffaqiyatli qo'llanildi",
+          title: "Code applied",
+          description: "AI suggestion applied successfully",
         });
       }
     }
@@ -341,7 +318,7 @@ const CodeEditorWithAI = ({
       <div className="h-full w-full rounded-lg overflow-hidden border border-border">
         <Editor
           height="100%"
-          language={getMonacoLanguage(language)}
+          language={language}
           value={code}
           onChange={handleChange}
           onMount={handleEditorDidMount}
@@ -377,10 +354,10 @@ const CodeEditorWithAI = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-16 right-4 flex items-center gap-2 px-3 py-2 bg-primary/20 rounded-lg border border-primary/30 z-50 backdro-blur-sm"
+            className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-primary/20 rounded-lg border border-primary/30"
           >
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-xs text-primary">AI tahlil qilmoqda...</span>
+            <span className="text-xs text-primary">AI is analyzing...</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -392,13 +369,13 @@ const CodeEditorWithAI = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-16 left-4 flex items-center gap-4 px-3 py-2 bg-background/90 rounded-lg border border-border z-40"
+            className="absolute bottom-4 left-4 flex items-center gap-4 px-3 py-2 bg-background/90 rounded-lg border border-border"
           >
             <span className="text-xs text-muted-foreground">
-              <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">Tab</kbd> qabul qilish
+              <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">Tab</kbd> accept
             </span>
             <span className="text-xs text-muted-foreground">
-              <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">Esc</kbd> bekor qilish
+              <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">Esc</kbd> dismiss
             </span>
           </motion.div>
         )}
@@ -429,7 +406,7 @@ const CodeEditorWithAI = ({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-sm transition-colors"
               >
                 <Lightbulb className="h-4 w-4 text-yellow-500" />
-                Tushuntir
+                Explain
               </button>
               <button
                 onClick={handleFix}
@@ -437,7 +414,7 @@ const CodeEditorWithAI = ({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-sm transition-colors"
               >
                 <Bug className="h-4 w-4 text-red-500" />
-                Xatoni to'g'irla
+                Fix bug
               </button>
               <button
                 onClick={handleTests}
@@ -445,7 +422,7 @@ const CodeEditorWithAI = ({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-sm transition-colors"
               >
                 <TestTube className="h-4 w-4 text-green-500" />
-                Testlar yarat
+                Generate tests
               </button>
               <button
                 onClick={handleRefactor}
@@ -453,7 +430,7 @@ const CodeEditorWithAI = ({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-sm transition-colors"
               >
                 <RefreshCw className="h-4 w-4 text-blue-500" />
-                Refaktor qil
+                Refactor
               </button>
               <button
                 onClick={handleDocs}
@@ -461,7 +438,7 @@ const CodeEditorWithAI = ({
                 className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-sm transition-colors"
               >
                 <FileText className="h-4 w-4 text-purple-500" />
-                Dokumentatsiya
+                Documentation
               </button>
             </motion.div>
           </>
@@ -481,11 +458,11 @@ const CodeEditorWithAI = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-medium text-sm">
-                  {aiResultType === "explain" && "Kod tushuntirmasi"}
-                  {aiResultType === "fix" && "To'g'irlangan kod"}
-                  {aiResultType === "tests" && "Yaratilgan testlar"}
-                  {aiResultType === "refactor" && "Refaktor qilingan kod"}
-                  {aiResultType === "docs" && "Dokumentatsiya"}
+                  {aiResultType === "explain" && "Code explanation"}
+                  {aiResultType === "fix" && "Fixed code"}
+                  {aiResultType === "tests" && "Generated tests"}
+                  {aiResultType === "refactor" && "Refactored code"}
+                  {aiResultType === "docs" && "Documentation"}
                 </span>
               </div>
               <button
@@ -507,7 +484,7 @@ const CodeEditorWithAI = ({
                   className="flex-1"
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  Qo'llash
+                  Apply
                 </MangaButton>
                 <MangaButton
                   variant="secondary"
@@ -516,7 +493,7 @@ const CodeEditorWithAI = ({
                   className="flex-1"
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Bekor
+                  Cancel
                 </MangaButton>
               </div>
             )}

@@ -24,7 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
 import {
   Shield,
   Users,
@@ -35,7 +34,6 @@ import {
   Trash2,
   Clock,
   Sparkles,
-  Settings,
 } from "lucide-react";
 
 type AppRole = "admin" | "moderator" | "user";
@@ -74,8 +72,6 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("1h");
   const [loading, setLoading] = useState(false);
-  const [aiUpgradeEnabled, setAiUpgradeEnabled] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     if (open && isModerator) {
@@ -104,22 +100,11 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
     
     setUsers(usersWithAI);
     setBans(bansData);
-
-    // Load AI upgrade setting
-    const { data: setting } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "ai_upgrade_enabled")
-      .single();
-    
-    if (setting?.value) {
-      setAiUpgradeEnabled((setting.value as any).enabled || false);
-    }
   };
 
   const toggleUserAI = async (userId: string, currentStatus: boolean) => {
     if (!isAdmin) {
-      toast({ title: "Faqat adminlar o'zgartira oladi", variant: "destructive" });
+      toast({ title: "Only admins can change this", variant: "destructive" });
       return;
     }
 
@@ -136,51 +121,22 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
       }, { onConflict: 'user_id' });
 
     if (error) {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       // Update local state
       setUsers(prev => prev.map(u => 
         u.user_id === userId ? { ...u, ai_enabled: newStatus } : u
       ));
       toast({
-        title: newStatus ? "AI yoqildi" : "AI o'chirildi",
-        description: `Foydalanuvchi uchun AI ${newStatus ? "yoqildi" : "o'chirildi"}`
+        title: newStatus ? "AI enabled" : "AI disabled",
+        description: `AI has been ${newStatus ? "enabled" : "disabled"} for this user`
       });
     }
-  };
-
-  const toggleAiUpgrade = async () => {
-    if (!isAdmin) {
-      toast({ title: "Faqat adminlar o'zgartira oladi", variant: "destructive" });
-      return;
-    }
-
-    setSettingsLoading(true);
-    const newValue = !aiUpgradeEnabled;
-    
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ 
-        value: { enabled: newValue, message: "AI Pro versiyasiga yangilash" },
-        updated_at: new Date().toISOString()
-      })
-      .eq("key", "ai_upgrade_enabled");
-
-    if (error) {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
-    } else {
-      setAiUpgradeEnabled(newValue);
-      toast({ 
-        title: newValue ? "AI Upgrade yoqildi" : "AI Upgrade o'chirildi",
-        description: newValue ? "Foydalanuvchilar upgrade tugmasini ko'radi" : "Upgrade tugmasi yashirildi"
-      });
-    }
-    setSettingsLoading(false);
   };
 
   const handleBan = async () => {
     if (!selectedUser) {
-      toast({ title: "Foydalanuvchi tanlang", variant: "destructive" });
+      toast({ title: "Select a user", variant: "destructive" });
       return;
     }
 
@@ -193,14 +149,23 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
       expiresAt.setHours(expiresAt.getHours() + hours);
     }
 
-    const { error } = await banUser(selectedUser, banType, roomId, banReason, expiresAt);
+    // "ban" is global by design: user cannot create or enter any room.
+    const targetRoomId = banType === "ban" ? undefined : roomId;
+    const { error } = await banUser(selectedUser, banType, targetRoomId, banReason, expiresAt);
     
     if (error) {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      if (banType === "kick" && roomId) {
+        await supabase
+          .from("room_members")
+          .delete()
+          .eq("room_id", roomId)
+          .eq("user_id", selectedUser);
+      }
       toast({
-        title: banType === "ban" ? "Bloklandi" : banType === "mute" ? "Ovozi o'chirildi" : "Chiqarildi",
-        description: "Amal muvaffaqiyatli bajarildi",
+        title: banType === "ban" ? "Banned" : banType === "mute" ? "Muted" : "Kicked",
+        description: "Action completed successfully",
       });
       loadData();
       setSelectedUser("");
@@ -212,24 +177,24 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
   const handleUnban = async (banId: string) => {
     const { error } = await unbanUser(banId);
     if (error) {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Blok olib tashlandi" });
+      toast({ title: "Restriction removed" });
       loadData();
     }
   };
 
   const handleRoleChange = async (userId: string, role: AppRole) => {
     if (!isAdmin) {
-      toast({ title: "Faqat adminlar rol o'zgartira oladi", variant: "destructive" });
+      toast({ title: "Only admins can change roles", variant: "destructive" });
       return;
     }
 
     const { error } = await setUserRole(userId, role);
     if (error) {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Rol o'zgartirildi" });
+      toast({ title: "Role updated" });
       loadData();
     }
   };
@@ -273,18 +238,15 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
         </DialogHeader>
 
         <Tabs defaultValue="users" className="mt-4">
-          <TabsList className="grid w-full grid-cols-4 bg-background/50">
+          <TabsList className="grid w-full grid-cols-3 bg-background/50">
             <TabsTrigger value="users" className="gap-1 text-xs">
-              <Users className="h-3 w-3" /> Foydalanuvchilar
+              <Users className="h-3 w-3" /> Users
             </TabsTrigger>
             <TabsTrigger value="actions" className="gap-1 text-xs">
-              <Ban className="h-3 w-3" /> Amallar
+              <Ban className="h-3 w-3" /> Actions
             </TabsTrigger>
             <TabsTrigger value="bans" className="gap-1 text-xs">
-              <UserX className="h-3 w-3" /> Bloklar
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-1 text-xs">
-              <Settings className="h-3 w-3" /> Sozlamalar
+              <UserX className="h-3 w-3" /> Restrictions
             </TabsTrigger>
           </TabsList>
 
@@ -306,7 +268,7 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user.display_name || "Noma'lum"}</p>
+                        <p className="font-medium">{user.display_name || "Unknown"}</p>
                         <p className="text-xs text-muted-foreground">{user.user_id.slice(0, 8)}...</p>
                       </div>
                     </div>
@@ -319,7 +281,7 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                               ? "bg-primary/20 text-primary hover:bg-primary/30"
                               : "bg-destructive/20 text-destructive hover:bg-destructive/30"
                           }`}
-                          title={user.ai_enabled !== false ? "AI o'chirish" : "AI yoqish"}
+                          title={user.ai_enabled !== false ? "Disable AI" : "Enable AI"}
                         >
                           <Sparkles className="h-4 w-4" />
                         </button>
@@ -351,10 +313,10 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
           <TabsContent value="actions" className="mt-4 space-y-4">
             <div className="space-y-3">
               <div>
-                <Label>Foydalanuvchi</Label>
+                <Label>User</Label>
                 <Select value={selectedUser} onValueChange={setSelectedUser}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Tanlang..." />
+                    <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((user) => (
@@ -367,7 +329,7 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
               </div>
 
               <div>
-                <Label>Amal turi</Label>
+                <Label>Action type</Label>
                 <Select value={banType} onValueChange={(v) => setBanType(v as "ban" | "kick" | "mute")}>
                   <SelectTrigger>
                     <SelectValue />
@@ -375,17 +337,17 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                   <SelectContent>
                     <SelectItem value="mute">
                       <span className="flex items-center gap-2">
-                        <VolumeX className="h-4 w-4" /> Ovozini o'chirish (Mute)
+                        <VolumeX className="h-4 w-4" /> Mute
                       </span>
                     </SelectItem>
                     <SelectItem value="kick">
                       <span className="flex items-center gap-2">
-                        <UserX className="h-4 w-4" /> Chiqarish (Kick)
+                        <UserX className="h-4 w-4" /> Kick
                       </span>
                     </SelectItem>
                     <SelectItem value="ban">
                       <span className="flex items-center gap-2">
-                        <Ban className="h-4 w-4" /> Bloklash (Ban)
+                        <Ban className="h-4 w-4" /> Ban
                       </span>
                     </SelectItem>
                   </SelectContent>
@@ -393,27 +355,27 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
               </div>
 
               <div>
-                <Label>Muddat</Label>
+                <Label>Duration</Label>
                 <Select value={banDuration} onValueChange={setBanDuration}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 soat</SelectItem>
-                    <SelectItem value="24">1 kun</SelectItem>
-                    <SelectItem value="168">1 hafta</SelectItem>
-                    <SelectItem value="720">1 oy</SelectItem>
-                    <SelectItem value="forever">Doimiy</SelectItem>
+                    <SelectItem value="1">1 hour</SelectItem>
+                    <SelectItem value="24">1 day</SelectItem>
+                    <SelectItem value="168">1 week</SelectItem>
+                    <SelectItem value="720">1 month</SelectItem>
+                    <SelectItem value="forever">Forever</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>Sabab (ixtiyoriy)</Label>
+                <Label>Reason (optional)</Label>
                 <Input
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
-                  placeholder="Sabab kiriting..."
+                  placeholder="Enter reason..."
                   className="bg-background/50"
                 />
               </div>
@@ -424,7 +386,7 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                 disabled={loading || !selectedUser}
                 className="w-full"
               >
-                {loading ? "Bajarilmoqda..." : "Tasdiqlash"}
+                {loading ? "Processing..." : "Confirm"}
               </MangaButton>
             </div>
           </TabsContent>
@@ -435,7 +397,7 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
                 <AnimatePresence>
                   {bans.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                      Hozircha bloklar yo'q
+                      No active restrictions
                     </p>
                   ) : (
                     bans.map((ban) => {
@@ -482,34 +444,6 @@ const AdminPanel = ({ roomId }: AdminPanelProps) => {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-4 space-y-4">
-            <div className="p-4 rounded-lg bg-background/30 border border-border">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">AI Upgrade tugmasi</p>
-                    <p className="text-xs text-muted-foreground">
-                      Foydalanuvchilarga "AI ni yangilash" tugmasini ko'rsatish
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={aiUpgradeEnabled}
-                  onCheckedChange={toggleAiUpgrade}
-                  disabled={settingsLoading || !isAdmin}
-                />
-              </div>
-            </div>
-
-            {!isAdmin && (
-              <p className="text-xs text-muted-foreground text-center">
-                Sozlamalarni faqat adminlar o'zgartira oladi
-              </p>
-            )}
-          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>

@@ -34,7 +34,7 @@ interface FileItem {
 
 interface ZipManagerProps {
   files: FileItem[];
-  onFilesImported: (files: { name: string; path: string; content: string; language: string; is_folder: boolean }[]) => void;
+  onFilesImported: (files: { name: string; path: string; content: string; language: string }[]) => void;
   roomName?: string;
 }
 
@@ -113,17 +113,16 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
 
     try {
       const zip = await JSZip.loadAsync(file);
-      const importedFiles: { name: string; path: string; content: string; language: string; is_folder: boolean }[] = [];
+      const importedFiles: { name: string; path: string; content: string; language: string }[] = [];
       const progressLog: string[] = [];
-      const folders = new Set<string>();
 
       for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
         if (zipEntry.dir) continue;
-
+        
         // Skip hidden files and node_modules
-        if (relativePath.startsWith(".") ||
-          relativePath.includes("node_modules/") ||
-          relativePath.includes("__MACOSX/")) {
+        if (relativePath.startsWith(".") || 
+            relativePath.includes("node_modules/") ||
+            relativePath.includes("__MACOSX/")) {
           continue;
         }
 
@@ -131,35 +130,13 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
           const content = await zipEntry.async("string");
           const pathParts = relativePath.split("/");
           const fileName = pathParts.pop() || "";
-          // Path should start with / and end with /
           const filePath = "/" + (pathParts.length > 0 ? pathParts.join("/") + "/" : "");
-
-          // Extract folders from path
-          let currentPath = "/";
-          for (const part of pathParts) {
-            const folderPath = currentPath; // Parent path
-            const folderName = part;
-            const fullFolderPath = currentPath + part + "/";
-
-            if (!folders.has(fullFolderPath)) {
-              folders.add(fullFolderPath);
-              importedFiles.push({
-                name: folderName,
-                path: folderPath,
-                content: "",
-                language: "plaintext",
-                is_folder: true
-              });
-            }
-            currentPath = fullFolderPath;
-          }
 
           importedFiles.push({
             name: fileName,
             path: filePath,
             content,
             language: getLanguageFromName(fileName),
-            is_folder: false
           });
 
           progressLog.push(`✓ ${relativePath}`);
@@ -213,14 +190,14 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
       files.forEach((file) => {
         if (!file.is_folder) {
           // Remove leading slash and construct path
-          const filePath = file.path === "/"
-            ? file.name
+          const filePath = file.path === "/" 
+            ? file.name 
             : file.path.slice(1) + file.name;
           zip.file(filePath, file.content);
         }
       });
 
-      const blob = await zip.generateAsync({
+      const blob = await zip.generateAsync({ 
         type: "blob",
         compression: "DEFLATE",
         compressionOptions: { level: 9 }
@@ -276,8 +253,8 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
                 relative flex flex-col items-center justify-center p-6 
                 border-2 border-dashed rounded-lg cursor-pointer
                 transition-colors duration-200
-                ${isUploading
-                  ? "border-primary bg-primary/5"
+                ${isUploading 
+                  ? "border-primary bg-primary/5" 
                   : "border-border hover:border-primary/50 hover:bg-muted/30"
                 }
               `}
@@ -315,8 +292,9 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
                   {uploadProgress.map((log, i) => (
                     <div
                       key={i}
-                      className={`text-xs font-mono ${log.startsWith("✓") ? "text-green-400" : "text-yellow-400"
-                        }`}
+                      className={`text-xs font-mono ${
+                        log.startsWith("✓") ? "text-green-400" : "text-yellow-400"
+                      }`}
                     >
                       {log}
                     </div>
@@ -347,8 +325,8 @@ const ZipManager = ({ files, onFilesImported, roomName = "project" }: ZipManager
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {isDownloading
-              ? "Tayyorlanmoqda..."
+            {isDownloading 
+              ? "Tayyorlanmoqda..." 
               : `Loyihani yuklab olish (${files.filter(f => !f.is_folder).length} fayl)`
             }
           </Button>

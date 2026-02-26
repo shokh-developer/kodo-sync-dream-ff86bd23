@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { MangaButton } from "./MangaButton";
@@ -18,11 +17,15 @@ import {
   Lightbulb,
   Bug,
   Zap,
+  FileCode,
+  FolderPlus,
   FilePlus,
   Wand2,
   Copy,
   Check,
   RefreshCw,
+  ArrowUp,
+  Crown,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +38,7 @@ interface Message {
 }
 
 interface AIAction {
-  type: "create_file" | "create_folder" | "edit_code" | "apply_code" | "update_file";
+  type: "create_file" | "create_folder" | "edit_code" | "apply_code";
   name?: string;
   path?: string;
   language?: string;
@@ -62,7 +65,82 @@ interface AIAssistantProps {
   author?: string;
 }
 
+const quickPrompts = [
+  { icon: Code, label: "Explain code", prompt: "Explain this code" },
+  { icon: Bug, label: "Find bugs", prompt: "Check this code for bugs" },
+  { icon: Lightbulb, label: "Optimize", prompt: "How can this code be improved?" },
+  { icon: Zap, label: "New feature", prompt: "Add a new feature to this code" },
+  { icon: FilePlus, label: "Create file", prompt: "Create a new file for me" },
+  { icon: Wand2, label: "Refactor code", prompt: "Refactor this code" },
+];
 
+const normalizeAiErrorMessage = (raw: string): string => {
+  const msg = (raw || "").trim();
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("ai xizmati bepul rejimda") || lower.includes("tez orada yangi limitlar")) {
+    return "AI quota is currently exhausted. Please try again later or configure your own AI API keys.";
+  }
+  if (lower.includes("juda ko'p so'rov")) {
+    return "Too many requests. Please wait a bit and try again.";
+  }
+  if (
+    lower.includes("resource_exhausted") ||
+    lower.includes("\"code\": 429") ||
+    lower.includes("code\":429") ||
+    lower.includes("quota exceeded") ||
+    lower.includes("exceeded your current quota") ||
+    lower.includes("rate limit exceeded")
+  ) {
+    return "Your Google AI key quota is exhausted. Add billing or wait for quota reset, then try again.";
+  }
+  if (
+    lower.includes("api key not valid") ||
+    lower.includes("invalid api key") ||
+    lower.includes("permission denied")
+  ) {
+    return "Google AI key is invalid or not allowed for this API. Check key permissions in Google AI Studio.";
+  }
+  if (
+    lower.includes("openrouter") &&
+    (lower.includes("insufficient credits") || lower.includes("payment required") || lower.includes("402"))
+  ) {
+    return "OpenRouter free credits are exhausted. Add another provider key or wait for reset.";
+  }
+  if (lower.includes("openrouter") && lower.includes("no endpoints found")) {
+    return "Selected OpenRouter model is temporarily unavailable. Trying another free model.";
+  }
+  if (lower.includes("javob olishda xatolik")) {
+    return "Failed to get a response from AI service.";
+  }
+
+  return msg;
+};
+
+const DIRECT_GOOGLE_MODEL_CANDIDATES = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+];
+const OPENROUTER_MODEL_CANDIDATES = [
+  "deepseek/deepseek-r1-0528:free",
+  "meta-llama/llama-3.3-8b-instruct:free",
+  "google/gemma-2-9b-it:free",
+];
+const shouldUseDirectGoogleFallback = (message: string): boolean => {
+  const lower = (message || "").toLowerCase();
+  return (
+    lower.includes("quota") ||
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("no ai keys") ||
+    lower.includes("exhausted")
+  );
+};
+
+const buildGoogleGenerateUrl = (model: string, key: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
 const AIAssistant = ({
   code,
@@ -80,19 +158,10 @@ const AIAssistant = ({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [aiDisabled, setAiDisabled] = useState(false);
-
+  const directGoogleKey = (import.meta.env.VITE_GOOGLE_AI_KEY as string | undefined)?.trim();
+  const openRouterKey = (import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined)?.trim();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { t } = useLanguage();
-
-  const quickPrompts = [
-    { icon: Code, label: t.ai.prompts.explain, prompt: t.ai.prompts.explain },
-    { icon: Bug, label: t.ai.prompts.fix, prompt: t.ai.prompts.fix },
-    { icon: Lightbulb, label: t.ai.prompts.optimize, prompt: t.ai.prompts.optimize },
-    { icon: Zap, label: t.ai.prompts.feature, prompt: t.ai.prompts.feature },
-    { icon: FilePlus, label: t.ai.prompts.create, prompt: t.ai.prompts.create },
-    { icon: Wand2, label: t.ai.prompts.refactor, prompt: t.ai.prompts.refactor },
-  ];
 
   useEffect(() => {
     const checkSettings = async () => {
@@ -104,7 +173,7 @@ const AIAssistant = ({
           .select("ai_enabled")
           .eq("user_id", user.id)
           .single();
-
+        
         if (aiAccess) {
           setAiDisabled(!aiAccess.ai_enabled);
         }
@@ -120,116 +189,225 @@ const AIAssistant = ({
   }, [messages]);
 
   const parseAIResponse = (content: string): { text: string; actions: AIAction[] } => {
-    let actions: AIAction[] = [];
+    const actions: AIAction[] = [];
     let text = content;
 
+    // Parse file creation commands: [CREATE_FILE: name.ext, path, language]
+    const createFileRegex = /\[CREATE_FILE:\s*([^\],]+),\s*([^\],]+),\s*([^\]]+)\]/g;
+    let match;
+    while ((match = createFileRegex.exec(content)) !== null) {
+      actions.push({
+        type: "create_file",
+        name: match[1].trim(),
+        path: match[2].trim(),
+        language: match[3].trim(),
+      });
+    }
+    text = text.replace(createFileRegex, "");
 
-    // Better approach: Regex for "Command + CodeBlock" pattern
-    // [UPDATE_FILE: src/App.tsx]
-    // ```tsx ... ```
+    // Parse folder creation: [CREATE_FOLDER: name, path]
+    const createFolderRegex = /\[CREATE_FOLDER:\s*([^\],]+),\s*([^\]]+)\]/g;
+    while ((match = createFolderRegex.exec(content)) !== null) {
+      actions.push({
+        type: "create_folder",
+        name: match[1].trim(),
+        path: match[2].trim(),
+      });
+    }
+    text = text.replace(createFolderRegex, "");
 
-    // Let's rely on the AI putting the path in the command, and the NEXT code block belonging to it.
+    // Parse code blocks that should be applied
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const codeBlocks: { language: string; code: string }[] = [];
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      codeBlocks.push({
+        language: match[1] || language,
+        code: match[2].trim(),
+      });
+    }
 
-    const pendingCommands: { type: "create" | "update"; path: string; name?: string; language?: string }[] = [];
-    let textParts = text.split(/(```[\s\S]*?```)/g);
+    // If there's code block and context suggests it should be applied
+    if (codeBlocks.length > 0) {
+      codeBlocks.forEach((block, index) => {
+        actions.push({
+          type: "apply_code",
+          content: block.code,
+          language: block.language,
+          description: `Code block #${index + 1}`,
+        });
+      });
+    }
 
-    actions = []; // Reset actions to rebuild them with code context
+    return { text: text.trim(), actions };
+  };
 
-    textParts.forEach(part => {
-      if (part.startsWith('```')) {
-        // It's a code block
-        const match = /```(\w+)?\n([\s\S]*?)```/.exec(part);
-        if (match) {
-          const code = match[2].trim();
-          const lang = match[1] || language;
+  const askGoogleDirect = async (enhancedPrompt: string): Promise<string> => {
+    if (!directGoogleKey) {
+      throw new Error("AI key is not configured.");
+    }
 
-          const command = pendingCommands.shift();
-          if (command) {
-            if (command.type === "create") {
-              const path = command.path.endsWith("/") ? command.path : `${command.path}/`;
-              actions.push({
-                type: "create_file",
-                name: command.name,
-                path,
-                language: command.language || lang,
-                content: code,
-                description: `Create: ${path}${command.name}`,
-              });
-            } else if (command.type === "update") {
-              actions.push({
-                type: "update_file",
-                path: command.path,
-                content: code,
-                language: lang,
-                description: `${t.ai.prompts.refactor}: ${command.path}`,
-              });
-            }
-          } else {
-            // unexpected code block, maybe apply to active?
-            actions.push({
-              type: "apply_code",
-              content: code,
-              language: lang,
-              description: t.editor.sync
-            });
-          }
-        }
-      } else {
-        // It's text, look for commands
-        const createMatch = /\[CREATE_FILE:\s*([^\],]+),\s*([^\],]+),\s*([^\]]+)\]/g;
-        let m;
-        while ((m = createMatch.exec(part)) !== null) {
-          const fileName = m[1].trim();
-          const rawPath = m[2].trim();
-          const filePath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-          const fileLang = m[3].trim();
-          const path = filePath.endsWith("/") ? filePath : `${filePath}/`;
-          actions.push({
-            type: "create_file",
-            name: fileName,
-            path,
-            language: fileLang,
-            content: "",
-            description: `Create: ${path}${fileName}`,
-          });
-          pendingCommands.push({ type: "create", path: filePath, name: fileName, language: fileLang });
-        }
+    let modelsToTry = [...DIRECT_GOOGLE_MODEL_CANDIDATES];
+    try {
+      const listResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${directGoogleKey}`
+      );
+      if (listResp.ok) {
+        const listData = await listResp.json();
+        const apiModels = (listData?.models || [])
+          .filter((m: any) =>
+            Array.isArray(m?.supportedGenerationMethods) &&
+            m.supportedGenerationMethods.includes("generateContent")
+          )
+          .map((m: any) => String(m?.name || "").replace(/^models\//, ""))
+          .filter(Boolean);
 
-        const updateMatch = /\[UPDATE_FILE:\s*([^\],]+)\]/g;
-        while ((m = updateMatch.exec(part)) !== null) {
-          const fullPath = m[1].trim();
-          pendingCommands.push({ type: "update", path: fullPath });
-        }
-
-        const folderMatch = /\[CREATE_FOLDER:\s*([^\],]+),\s*([^\]]+)\]/g;
-        while ((m = folderMatch.exec(part)) !== null) {
-          actions.push({
-            type: "create_folder",
-            name: m[1].trim(),
-            path: m[2].trim(),
-          });
+        if (apiModels.length > 0) {
+          const preferred = DIRECT_GOOGLE_MODEL_CANDIDATES.filter((m) => apiModels.includes(m));
+          modelsToTry = preferred.length > 0 ? preferred : apiModels;
         }
       }
-    });
+    } catch {
+      // Keep default candidates if listing models fails.
+    }
 
-    while (pendingCommands.length > 0) {
-      const command = pendingCommands.shift();
-      if (command?.type === "create" && command.name && command.path) {
-        const path = command.path.endsWith("/") ? command.path : `${command.path}/`;
-        actions.push({
-          type: "create_file",
-          name: command.name,
-          path,
-          language: command.language || language,
-          content: "",
-          description: `Create: ${path}${command.name}`,
+    let lastError = "Failed to get response from Google AI.";
+    for (const model of modelsToTry) {
+      try {
+        const googleResponse = await fetch(buildGoogleGenerateUrl(model, directGoogleKey), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
+          }),
         });
+
+        if (!googleResponse.ok) {
+          const errorText = await googleResponse.text();
+          const normalized = normalizeAiErrorMessage(errorText);
+
+          // Stop early on quota/auth errors, retry only for model-related failures.
+          if (googleResponse.status === 429 || googleResponse.status === 401 || googleResponse.status === 403) {
+            throw new Error(normalized);
+          }
+
+          if (googleResponse.status === 404 || errorText.toLowerCase().includes("not found")) {
+            lastError = errorText;
+            continue;
+          }
+
+          throw new Error(normalized);
+        }
+
+        const googleData = await googleResponse.json();
+        const responseText = googleData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) {
+          return responseText;
+        }
+
+        lastError = "Google AI returned an empty response.";
+      } catch (error: any) {
+        lastError = error?.message || "Google AI request failed.";
       }
     }
 
-    text = text.replace(/\[CREATE_FILE:.*?\]/g, "").replace(/\[UPDATE_FILE:.*?\]/g, "").replace(/\[CREATE_FOLDER:.*?\]/g, "");
+    throw new Error(normalizeAiErrorMessage(lastError));
+  };
 
-    return { text: text.trim(), actions };
+  const askOpenRouterDirect = async (enhancedPrompt: string): Promise<string> => {
+    if (!openRouterKey) {
+      throw new Error("OpenRouter key is not configured.");
+    }
+
+    let modelsToTry = [...OPENROUTER_MODEL_CANDIDATES];
+    try {
+      const modelsResponse = await fetch("https://openrouter.ai/api/v1/models");
+      if (modelsResponse.ok) {
+        const modelsData = await modelsResponse.json();
+        const freeModels = (modelsData?.data || [])
+          .map((m: any) => {
+            const id = String(m?.id || "");
+            const promptPrice = Number(m?.pricing?.prompt ?? NaN);
+            const completionPrice = Number(m?.pricing?.completion ?? NaN);
+            const isFreeById = id.endsWith(":free");
+            const isFreeByPricing =
+              Number.isFinite(promptPrice) &&
+              Number.isFinite(completionPrice) &&
+              promptPrice === 0 &&
+              completionPrice === 0;
+            return { id, isFree: isFreeById || isFreeByPricing };
+          })
+          .filter((m: { id: string; isFree: boolean }) => m.isFree && m.id)
+          .map((m: { id: string }) => m.id);
+
+        if (freeModels.length > 0) {
+          const preferred = OPENROUTER_MODEL_CANDIDATES.filter((m) => freeModels.includes(m));
+          const ordered = preferred.length > 0 ? [...preferred, ...freeModels] : freeModels;
+          modelsToTry = Array.from(new Set(ordered));
+        }
+      }
+    } catch {
+      // Keep static fallback list when models endpoint is unavailable.
+    }
+
+    let lastError = "OpenRouter request failed.";
+    for (const model of modelsToTry) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openRouterKey}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "CodeForge",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: enhancedPrompt }],
+            temperature: 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const normalized = normalizeAiErrorMessage(`OpenRouter: ${errorText}`);
+          if (response.status === 429 || response.status === 402 || response.status === 401 || response.status === 403) {
+            throw new Error(normalized);
+          }
+          lastError = normalized;
+          continue;
+        }
+
+        const data = await response.json();
+        const text = data?.choices?.[0]?.message?.content;
+        if (text) {
+          return text;
+        }
+
+        lastError = "OpenRouter returned an empty response.";
+      } catch (error: any) {
+        lastError = error?.message || "OpenRouter request failed.";
+      }
+    }
+
+    throw new Error(normalizeAiErrorMessage(lastError));
+  };
+
+  const askAnyDirectProvider = async (enhancedPrompt: string): Promise<string> => {
+    if (directGoogleKey) {
+      try {
+        return await askGoogleDirect(enhancedPrompt);
+      } catch (error) {
+        if (!openRouterKey) {
+          throw error;
+        }
+      }
+    }
+
+    if (openRouterKey) {
+      return await askOpenRouterDirect(enhancedPrompt);
+    }
+
+    throw new Error("No direct AI keys configured. Add VITE_GOOGLE_AI_KEY or VITE_OPENROUTER_API_KEY.");
   };
 
   const sendMessage = async (prompt: string) => {
@@ -238,8 +416,8 @@ const AIAssistant = ({
     // Check if AI is disabled for this user
     if (aiDisabled) {
       toast({
-        title: "AI o'chirilgan",
-        description: "Admin tomonidan sizning AI dan foydalanish huquqingiz o'chirilgan",
+        title: "AI disabled",
+        description: "Your access to AI has been disabled by an admin",
         variant: "destructive",
       });
       return;
@@ -256,42 +434,93 @@ const AIAssistant = ({
     setIsLoading(true);
 
     try {
-      // Build context about current project (Full context)
-      const fileList = files
-        .filter(f => !f.is_folder && f.language !== 'plaintext') // Filter for code files
-        .map(f => `
---- ${f.path}${f.name} ---
-\`\`\`${f.language}
-${f.content}
-\`\`\`
-`).join("\n");
-
+      // Build context about current project
+      const fileList = files.map(f => `${f.is_folder ? "📁" : "📄"} ${f.path}${f.name}`).join("\n");
       const enhancedPrompt = `
-Foydalanuvchi so'rovi: ${prompt}
+User request: ${prompt}
 
-PROYEKT KONTEKSTI (Barcha fayllar):
+Current project context:
+- Active file: ${activeFile?.name || "None"} (${activeFile?.language || "unknown"})
+- All files:
 ${fileList}
 
-JORIY FAYL: ${activeFile?.name || "Yo'q"}
+Current code:
 \`\`\`${language}
-${code || "// Hali kod yo'q"}
+${code || "// No code yet"}
 \`\`\`
 
-Qoidalar:
-1. Sen butun loyihani ko'ra olasan. Agar biror faylga o'zgartirish kerak bo'lsa, aniq fayl nomini ayt.
-2. Yangi fayl yaratish: [CREATE_FILE: fayl_nomi, path, language]
-3. Yangi papka yaratish: [CREATE_FOLDER: papka_nomi, path]
-4. Kod optimizatsiyasi yoki xatolarni to'g'irlashda boshqa fayllarga ham e'tibor ber (importlar, funksiyalar).
-5. Savol bermasdan, aniq o'zgartirishlar taklif qil va kerak bo'lsa faylni yangila.
+Rules:
+1. If the user asks to create a new file, include [CREATE_FILE: file_name, path, language] in your response
+2. If the user asks to create a new folder, include [CREATE_FOLDER: folder_name, path] in your response
+3. If you provide code, wrap it in \`\`\` blocks so the user can insert it using the "Apply code" button
+4. You can also help combine HTML, CSS, and JavaScript files
 `;
 
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { prompt: enhancedPrompt, code, language },
       });
 
-      if (error) throw error;
+      if (error) {
+        let detailedMessage = error.message || "Edge function call failed";
+        const ctx = (error as any)?.context;
 
-      const responseText = data.response || "Javob olishda xatolik yuz berdi";
+        if (ctx) {
+          try {
+            const payload = await ctx.json();
+            if (payload?.error) {
+              detailedMessage = payload.error;
+            } else if (payload?.message) {
+              detailedMessage = payload.message;
+            }
+          } catch {
+            try {
+              const text = await ctx.text();
+              if (text) detailedMessage = text;
+            } catch {
+              // Keep original message
+            }
+          }
+        }
+
+        const normalized = normalizeAiErrorMessage(detailedMessage);
+        if ((directGoogleKey || openRouterKey) && shouldUseDirectGoogleFallback(normalized)) {
+          const responseText = await askAnyDirectProvider(enhancedPrompt);
+          const { text, actions } = parseAIResponse(responseText);
+
+          const assistantMessage: Message = {
+            role: "assistant",
+            content: text,
+            timestamp: new Date(),
+            actions: actions.length > 0 ? actions : undefined,
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          return;
+        }
+
+        throw new Error(normalized);
+      }
+      if (data?.error) {
+        const normalized = normalizeAiErrorMessage(data.error);
+        if ((directGoogleKey || openRouterKey) && shouldUseDirectGoogleFallback(normalized)) {
+          const responseText = await askAnyDirectProvider(enhancedPrompt);
+          const { text, actions } = parseAIResponse(responseText);
+
+          const assistantMessage: Message = {
+            role: "assistant",
+            content: text,
+            timestamp: new Date(),
+            actions: actions.length > 0 ? actions : undefined,
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          return;
+        }
+
+        throw new Error(normalized);
+      }
+
+      const responseText = data.response || "Failed to get response";
       const { text, actions } = parseAIResponse(responseText);
 
       const assistantMessage: Message = {
@@ -302,154 +531,74 @@ Qoidalar:
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      if (actions.length > 0) {
-        await applyActions(actions);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI error:", error);
+      const message =
+        error?.message?.includes("Failed to send a request to the Edge Function")
+          ? "AI service is unreachable. Make sure Supabase functions are running and keys are configured."
+          : normalizeAiErrorMessage(error?.message || "Something went wrong. Please try again.");
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Xatolik yuz berdi. Iltimos qayta urinib ko'ring.",
+          content: message,
           timestamp: new Date(),
         },
       ]);
+      toast({
+        title: "AI error",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAction = async (action: AIAction, silent: boolean = false) => {
+  const handleAction = async (action: AIAction) => {
     try {
       switch (action.type) {
         case "create_file":
           if (action.name && action.path) {
-            const withSlash = action.path.startsWith("/") ? action.path : `/${action.path}`;
-            const normalizedPath = withSlash.endsWith("/") ? withSlash : `${withSlash}/`;
-            const fullPath = `${normalizedPath}${action.name}`;
-            const existing = files.find(
-              (f) => (f.path + f.name) === fullPath || f.name === action.name
-            );
-
-            if (existing) {
-              if (action.content && existing.content !== action.content) {
-                onUpdateFileContent(existing.id, action.content);
-              }
-            } else {
-              const created = await onCreateFile(action.name, normalizedPath, false, action.language, action.content || "");
-              if (!created) {
-                const msg = `Fayl yaratilmadi: ${fullPath}`;
-                setMessages((prev) => [
-                  ...prev,
-                  { role: "assistant", content: msg, timestamp: new Date() },
-                ]);
-                if (!silent) {
-                  toast({ title: "Xatolik", description: msg, variant: "destructive" });
-                }
-              }
-            }
-            if (!silent) {
-              toast({
-                title: "Fayl yaratildi!",
-                description: `${action.name} muvaffaqiyatli yaratildi`,
-              });
-            }
+            await onCreateFile(action.name, action.path, false, action.language, "");
+            toast({
+              title: "File created!",
+              description: `${action.name} was created successfully`,
+            });
           }
           break;
         case "create_folder":
           if (action.name && action.path) {
             await onCreateFile(action.name, action.path, true);
-            if (!silent) {
-              toast({
-                title: "Papka yaratildi!",
-                description: `${action.name} papkasi muvaffaqiyatli yaratildi`,
-              });
-            }
-          }
-          break;
-        case "update_file":
-          if (action.path && action.content) {
-            // Find file by path
-            const normalized = action.path.startsWith("/") ? action.path : `/${action.path}`;
-            const targetFile = files.find(
-              (f) => (f.path + f.name) === normalized || f.name === normalized.split("/").pop()
-            );
-
-            if (targetFile) {
-              onUpdateFileContent(targetFile.id, action.content);
-              if (!silent) {
-                toast({
-                  title: "Fayl yangilandi",
-                  description: `${targetFile.name} muvaffaqiyatli o'zgartirildi`,
-                });
-              }
-            } else {
-              const msg = `Fayl topilmadi: ${action.path}`;
-              setMessages((prev) => [
-                ...prev,
-                { role: "assistant", content: msg, timestamp: new Date() },
-              ]);
-              if (!silent) {
-                toast({
-                  title: "Xatolik",
-                  description: msg,
-                  variant: "destructive",
-                });
-              }
-            }
+            toast({
+              title: "Folder created!",
+              description: `${action.name} folder was created successfully`,
+            });
           }
           break;
         case "apply_code":
           if (action.content && activeFile) {
             onUpdateFileContent(activeFile.id, action.content);
-            if (!silent) {
-              toast({
-                title: "Kod qo'llanildi!",
-                description: "Kod muvaffaqiyatli yangilandi",
-              });
-            }
+            toast({
+              title: "Code applied!",
+              description: "Code updated successfully",
+            });
           } else if (!activeFile) {
-            if (!silent) {
-              toast({
-                title: "Xatolik",
-                description: "Avval biror faylni tanlang",
-                variant: "destructive",
-              });
-            }
+            toast({
+              title: "Error",
+              description: "Select a file first",
+              variant: "destructive",
+            });
           }
           break;
       }
     } catch (error) {
       console.error("Action error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Xatolik: AI amaliyotini bajarib bo'lmadi. Iltimos konsolni tekshiring.",
-          timestamp: new Date(),
-        },
-      ]);
-      if (!silent) {
-        toast({
-          title: "Xatolik",
-          description: "Amaliyotni bajarishda xatolik yuz berdi",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const applyActions = async (actions: AIAction[]) => {
-    const seen = new Set<string>();
-    for (const action of actions) {
-      if (action.type === "create_file" && action.name && action.path) {
-        const normalizedPath = action.path.endsWith("/") ? action.path : `${action.path}/`;
-        const key = `${normalizedPath}${action.name}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-      }
-      await handleAction(action, true);
+      toast({
+        title: "Error",
+        description: "Failed to execute action",
+        variant: "destructive",
+      });
     }
   };
 
@@ -525,10 +674,11 @@ Qoidalar:
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed z-50 bg-card border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden flex flex-col ${isExpanded
-              ? "bottom-4 right-4 left-4 top-4 md:bottom-10 md:right-10 md:left-auto md:top-10 md:w-[700px]"
-              : "bottom-20 right-4 md:right-20 w-[95vw] md:w-[500px] max-h-[80vh]"
-              }`}
+            className={`fixed z-50 bg-card border border-border rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden flex flex-col ${
+              isExpanded 
+                ? "bottom-4 right-4 left-4 top-4 md:bottom-10 md:right-10 md:left-auto md:top-10 md:w-[700px]" 
+                : "bottom-20 right-4 md:right-20 w-[95vw] md:w-[500px] max-h-[80vh]"
+            }`}
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-primary/20 to-transparent border-b border-border flex-shrink-0">
@@ -541,11 +691,11 @@ Qoidalar:
                     <h3 className="font-orbitron font-bold flex items-center gap-2">
                       CodeForge AI
                       <span className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold bg-secondary text-secondary-foreground">
-                        {t.ai.badge}
+                        Free
                       </span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      {t.ai.subtitle}
+                      Write code, create files, optimize faster
                     </p>
                   </div>
                 </div>
@@ -553,7 +703,7 @@ Qoidalar:
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                    title={isExpanded ? "Kichiklashtirish" : "Kattalashtirish"}
+                    title={isExpanded ? "Minimize" : "Maximize"}
                   >
                     {isExpanded ? (
                       <Minimize2 className="h-4 w-4 text-muted-foreground" />
@@ -564,14 +714,14 @@ Qoidalar:
                   <button
                     onClick={clearChat}
                     className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                    title="Chatni tozalash"
+                    title="Clear chat"
                   >
                     <RefreshCw className="h-4 w-4 text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => setIsOpen(false)}
                     className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                    title="Yopish"
+                    title="Close"
                   >
                     <X className="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -586,10 +736,10 @@ Qoidalar:
                   <div className="text-center mb-4">
                     <Wand2 className="h-12 w-12 mx-auto text-primary/50 mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      {t.ai.title}
+                      A powerful assistant like GitHub Copilot!
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {t.ai.subtitle}
+                      Create files, write code, and optimize quickly
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -630,10 +780,11 @@ Qoidalar:
                       </Avatar>
                       <div className="flex-1 space-y-2">
                         <div
-                          className={`p-3 rounded-xl text-sm ${msg.role === "user"
-                            ? "bg-primary/20 text-foreground"
-                            : "bg-background/50 border border-border"
-                            }`}
+                          className={`p-3 rounded-xl text-sm ${
+                            msg.role === "user"
+                              ? "bg-primary/20 text-foreground"
+                              : "bg-background/50 border border-border"
+                          }`}
                         >
                           {msg.role === "assistant" ? (
                             <div className="prose prose-sm prose-invert max-w-none">
@@ -683,9 +834,37 @@ Qoidalar:
                           )}
                         </div>
 
+                        {/* Action buttons */}
                         {msg.actions && msg.actions.length > 0 && (
-                          <div className="text-[11px] text-muted-foreground">
-                            O'zgartirishlar avtomatik qo'llandi.
+                          <div className="flex flex-wrap gap-2">
+                            {msg.actions.map((action, actionIndex) => (
+                              <motion.button
+                                key={actionIndex}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 text-xs font-medium transition-colors"
+                                onClick={() => handleAction(action)}
+                              >
+                                {action.type === "create_file" && (
+                                  <>
+                                    <FilePlus className="h-3.5 w-3.5 text-primary" />
+                                    <span>Create {action.name}</span>
+                                  </>
+                                )}
+                                {action.type === "create_folder" && (
+                                  <>
+                                    <FolderPlus className="h-3.5 w-3.5 text-primary" />
+                                    <span>{action.name} folder</span>
+                                  </>
+                                )}
+                                {action.type === "apply_code" && (
+                                  <>
+                                    <FileCode className="h-3.5 w-3.5 text-accent" />
+                                    <span>Apply code</span>
+                                  </>
+                                )}
+                              </motion.button>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -705,7 +884,7 @@ Qoidalar:
                       <div className="flex-1 p-3 rounded-xl bg-background/50 border border-border">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          {t.ai.analyzing}
+                          Analyzing code...
                         </div>
                       </div>
                     </motion.div>
@@ -720,7 +899,7 @@ Qoidalar:
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={t.ai.placeholder}
+                  placeholder="Create a file, write code, find bugs..."
                   className="flex-1 bg-background/50"
                   disabled={isLoading}
                 />
@@ -734,7 +913,7 @@ Qoidalar:
                 </MangaButton>
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                "index.html yaratib ber" yoki "bu kodni optimizatsiya qil" deb yozing
+                Tip: try "create index.html" or "optimize this code"
               </p>
             </form>
 

@@ -111,42 +111,40 @@ export const useAdmin = () => {
     return { error };
   };
 
-  const isUserBanned = async (userId: string, roomId?: string): Promise<boolean> => {
-    const { data } = await supabase
+  const hasActiveBanType = async (
+    userId: string,
+    banType: "ban" | "mute" | "kick",
+    roomId?: string
+  ): Promise<boolean> => {
+    let query = supabase
       .from("user_bans")
-      .select("id")
+      .select("room_id, expires_at")
       .eq("user_id", userId)
-      .eq("ban_type", "ban")
-      .or(`room_id.eq.${roomId},room_id.is.null`)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      .eq("ban_type", banType);
 
-    return !!data;
+    if (roomId) {
+      query = query.or(`room_id.eq.${roomId},room_id.is.null`);
+    } else {
+      query = query.is("room_id", null);
+    }
+
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) return false;
+
+    const now = new Date();
+    return data.some((ban) => !ban.expires_at || new Date(ban.expires_at) > now);
+  };
+
+  const isUserBanned = async (userId: string, roomId?: string): Promise<boolean> => {
+    return hasActiveBanType(userId, "ban", roomId);
   };
 
   const isUserMuted = async (userId: string, roomId?: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from("user_bans")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("ban_type", "mute")
-      .or(`room_id.eq.${roomId},room_id.is.null`)
-      .maybeSingle();
+    return hasActiveBanType(userId, "mute", roomId);
+  };
 
-    // Check if not expired
-    if (data) {
-      const { data: ban } = await supabase
-        .from("user_bans")
-        .select("expires_at")
-        .eq("id", data.id)
-        .single();
-      
-      if (ban?.expires_at && new Date(ban.expires_at) < new Date()) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+  const isUserKicked = async (userId: string, roomId?: string): Promise<boolean> => {
+    return hasActiveBanType(userId, "kick", roomId);
   };
 
   return {
@@ -160,5 +158,6 @@ export const useAdmin = () => {
     setUserRole,
     isUserBanned,
     isUserMuted,
+    isUserKicked,
   };
 };

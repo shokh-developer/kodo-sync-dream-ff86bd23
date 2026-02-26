@@ -202,7 +202,15 @@ export const useVoiceChat = (roomId: string | null) => {
   }, [userId, userName, createPeerConnection, removePeer]);
 
   const joinVoice = useCallback(async () => {
-    if (!roomId || !userId) return;
+    if (!roomId) {
+      throw new Error("Room is not ready for voice chat.");
+    }
+    if (!userId) {
+      throw new Error("You must be signed in before joining voice chat.");
+    }
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      throw new Error("Your browser does not support microphone access.");
+    }
 
     try {
       // Get microphone access

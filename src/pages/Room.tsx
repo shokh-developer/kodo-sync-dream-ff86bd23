@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 import { useRoom, useFiles, joinRoom } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
@@ -20,11 +19,13 @@ import { MangaButton } from "@/components/MangaButton";
 import { ArrowLeft, Loader2, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { debounce } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Room = () => {
   const { id } = useParams<{ id: string }>();
-  const { t } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { room, loading: roomLoading, error } = useRoom(id || null);
   const { user, isAuthenticated } = useAuth();
   const {
@@ -42,15 +43,138 @@ const Room = () => {
 
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [terminalOpen, setTerminalOpen] = useState(true); // Default ochiq
+  const [terminalOpen, setTerminalOpen] = useState(true); // Open by default
   const [localContent, setLocalContent] = useState("");
+
+  const checkRoomAccess = useCallback(
+    async (roomId: string) => {
+      if (!user) return { allowed: false, reason: "not-authenticated" as const };
+
+      const { data: bans } = await supabase
+        .from("user_bans")
+        .select("ban_type, expires_at")
+        .eq("user_id", user.id)
+        .or(`room_id.eq.${roomId},room_id.is.null`);
+
+      const now = new Date();
+      const isActive = (expiresAt: string | null) => !expiresAt || new Date(expiresAt) > now;
+      const hasBan = (bans || []).some((b) => b.ban_type === "ban" && isActive(b.expires_at));
+      if (hasBan) return { allowed: false, reason: "banned" as const };
+      return { allowed: true, reason: null };
+    },
+    [user]
+  );
 
   // Join room when user enters
   useEffect(() => {
-    if (room?.id && isAuthenticated) {
-      joinRoom(room.id);
-    }
-  }, [room?.id, isAuthenticated]);
+    if (!room?.id || !isAuthenticated || !user) return;
+
+    const enterRoom = async () => {
+      const access = await checkRoomAccess(room.id);
+      if (!access.allowed) {
+        toast({
+          title: "Access denied",
+          description:
+            access.reason === "banned"
+              ? "You are banned and cannot enter this room."
+              : "Access denied.",
+          variant: "destructive",
+        });
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const result = await joinRoom(room.id);
+      if (result?.error) {
+        const message = (result.error.message || "").toLowerCase();
+        const isHardBlock =
+          message.includes("banned") || message.includes("kicked");
+
+        if (isHardBlock) {
+          toast({
+            title: "Access denied",
+            description: result.error.message,
+            variant: "destructive",
+          });
+          navigate("/", { replace: true });
+        } else {
+          // Membership sync is optional for editor usage; keep silent for users.
+          console.warn("Room membership sync skipped:", result.error.message);
+        }
+      }
+    };
+
+    enterRoom();
+  }, [room?.id, isAuthenticated, user?.id, checkRoomAccess, navigate, toast]);
+
+  // Realtime ban enforcement while user is inside room.
+  useEffect(() => {
+    if (!room?.id || !user?.id) return;
+
+    const channel = supabase
+      .channel(`room-access:${room.id}:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_bans",
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          const access = await checkRoomAccess(room.id);
+          if (!access.allowed) {
+            toast({
+              title: "Removed from room",
+              description:
+                access.reason === "banned"
+                  ? "You were banned from this room."
+                  : "Access denied.",
+              variant: "destructive",
+            });
+            navigate("/", { replace: true });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [room?.id, user?.id, checkRoomAccess, navigate, toast]);
+
+  // Kick enforcement: if membership is deleted, user is removed from room.
+  useEffect(() => {
+    if (!room?.id || !user?.id) return;
+
+    const channel = supabase
+      .channel(`room-membership:${room.id}:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "room_members",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const deletedRoomId = (payload.old as any)?.room_id;
+          if (deletedRoomId === room.id) {
+            toast({
+              title: "Removed from room",
+              description: "You were kicked from this room.",
+              variant: "destructive",
+            });
+            navigate("/", { replace: true });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [room?.id, user?.id, navigate, toast]);
 
   // Sync local content with active file when it changes from realtime updates
   useEffect(() => {
@@ -64,7 +188,7 @@ const Room = () => {
     if (!file || file.is_folder) return;
     setActiveFile(file);
     setLocalContent(file.content);
-
+    
     if (!openTabs.includes(file.id)) {
       setOpenTabs(prev => [...prev, file.id]);
     }
@@ -128,7 +252,7 @@ const Room = () => {
         >
           <Loader2 className="h-12 w-12 text-primary animate-spin" />
           <p className="text-lg font-orbitron text-muted-foreground">
-            {t.room.loading}
+            Loading room...
           </p>
         </motion.div>
       </div>
@@ -144,14 +268,14 @@ const Room = () => {
           animate={{ opacity: 1, scale: 1 }}
         >
           <h1 className="text-3xl font-orbitron font-bold text-destructive mb-4">
-            {t.room.not_found}
+            Room not found
           </h1>
           <p className="text-muted-foreground font-rajdhani mb-6">
-            {t.room.not_found_desc}
+            This room does not exist or was deleted
           </p>
           <MangaButton variant="primary" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
-            {t.room.back_home}
+            Back to home
           </MangaButton>
         </motion.div>
       </div>
@@ -172,7 +296,7 @@ const Room = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </MangaButton>
-
+        
         <MangaButton
           variant="ghost"
           size="icon"
@@ -185,14 +309,14 @@ const Room = () => {
             <PanelLeft className="h-5 w-5" />
           )}
         </MangaButton>
-
+        
         {/* Admin Panel in Header */}
         {isModerator && (
           <div className="flex items-center border-r border-border px-2">
             <AdminPanel roomId={id} />
           </div>
         )}
-
+        
         <div className="flex-1">
           <EditorHeader
             roomId={room.id}
@@ -201,8 +325,32 @@ const Room = () => {
             onlineUsers={onlineUsers}
             files={files}
             onFilesImported={async (importedFiles) => {
+              // First create all unique folders
+              const folderPaths = new Set<string>();
               for (const file of importedFiles) {
-                await createFile(file.name, file.path, file.is_folder, file.language, file.content);
+                // Extract all intermediate folder paths
+                const parts = file.path.split("/").filter(Boolean);
+                let currentPath = "/";
+                for (const part of parts) {
+                  const folderFullPath = currentPath + part + "/";
+                  folderPaths.add(JSON.stringify({ name: part, path: currentPath }));
+                  currentPath = folderFullPath;
+                }
+              }
+              
+              // Create folders first
+              for (const folderJson of folderPaths) {
+                const { name, path } = JSON.parse(folderJson);
+                // Check if folder already exists
+                const exists = files.some(f => f.is_folder && f.name === name && f.path === path);
+                if (!exists) {
+                  await createFile(name, path, true);
+                }
+              }
+
+              // Then create files
+              for (const file of importedFiles) {
+                await createFile(file.name, file.path, false, file.language, file.content);
               }
             }}
           />
@@ -279,8 +427,8 @@ const Room = () => {
       <VoiceChat roomId={id || ""} />
 
       {/* AI Assistant - GitHub Copilot style */}
-      <AIAssistant
-        code={localContent}
+      <AIAssistant 
+        code={localContent} 
         language={activeFile?.language || "javascript"}
         files={files}
         activeFile={activeFile}

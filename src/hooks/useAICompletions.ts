@@ -25,6 +25,7 @@ export const useAICompletions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentSuggestion, setCurrentSuggestion] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const rateLimitCooldownRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Inline completion - Tab bilan qabul qilinadigan
@@ -41,6 +42,11 @@ export const useAICompletions = () => {
       }
       abortControllerRef.current = new AbortController();
 
+      // Skip if in rate limit cooldown
+      if (Date.now() < rateLimitCooldownRef.current) {
+        return null;
+      }
+
       setIsLoading(true);
       setCurrentSuggestion(null);
 
@@ -55,11 +61,14 @@ export const useAICompletions = () => {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Set 60s cooldown on any error (likely rate limit)
+          rateLimitCooldownRef.current = Date.now() + 60000;
+          return null;
+        }
 
-        // Check for specific API errors in data
         if (data?.error) {
-          console.error("AI API Error:", data.error);
+          rateLimitCooldownRef.current = Date.now() + 60000;
           return null;
         }
 
@@ -67,22 +76,13 @@ export const useAICompletions = () => {
         setCurrentSuggestion(suggestion);
         return suggestion;
       } catch (error: any) {
-        if (error.name !== "AbortError") {
-          console.error("Inline completion error:", error);
-          if (error.message?.includes("LOVABLE_API_KEY")) {
-            toast({
-              title: "Sozlash talab qilinadi",
-              description: "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak",
-              variant: "destructive"
-            });
-          }
-        }
+        rateLimitCooldownRef.current = Date.now() + 60000;
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [toast]
+    []
   );
 
   // Kodni tushuntirish
@@ -95,21 +95,12 @@ export const useAICompletions = () => {
         });
 
         if (error) throw error;
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
         return data?.completion || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Explain code error:", error);
-        const isApiKeyError = error.message?.includes("LOVABLE_API_KEY") || error.message?.includes("FunctionsFetchError");
-
         toast({
           title: "Xatolik",
-          description: isApiKeyError
-            ? "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak"
-            : "Kodni tushuntirishda xatolik: " + (error.message || "Noma'lum xatolik"),
+          description: "Kodni tushuntirishda xatolik",
           variant: "destructive",
         });
         return null;
@@ -130,21 +121,12 @@ export const useAICompletions = () => {
         });
 
         if (error) throw error;
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
         return data?.completion || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Fix code error:", error);
-        const isApiKeyError = error.message?.includes("LOVABLE_API_KEY") || error.message?.includes("FunctionsFetchError");
-
         toast({
           title: "Xatolik",
-          description: isApiKeyError
-            ? "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak"
-            : "Kodni to'g'irlashda xatolik: " + (error.message || "Noma'lum xatolik"),
+          description: "Kodni to'g'irlashda xatolik",
           variant: "destructive",
         });
         return null;
@@ -165,21 +147,12 @@ export const useAICompletions = () => {
         });
 
         if (error) throw error;
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
         return data?.completion || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Generate tests error:", error);
-        const isApiKeyError = error.message?.includes("LOVABLE_API_KEY") || error.message?.includes("FunctionsFetchError");
-
         toast({
           title: "Xatolik",
-          description: isApiKeyError
-            ? "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak"
-            : "Test yaratishda xatolik: " + (error.message || "Noma'lum xatolik"),
+          description: "Test yaratishda xatolik",
           variant: "destructive",
         });
         return null;
@@ -200,21 +173,12 @@ export const useAICompletions = () => {
         });
 
         if (error) throw error;
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
         return data?.completion || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Refactor code error:", error);
-        const isApiKeyError = error.message?.includes("LOVABLE_API_KEY") || error.message?.includes("FunctionsFetchError");
-
         toast({
           title: "Xatolik",
-          description: isApiKeyError
-            ? "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak"
-            : "Kodni refaktor qilishda xatolik: " + (error.message || "Noma'lum xatolik"),
+          description: "Kodni refaktor qilishda xatolik",
           variant: "destructive",
         });
         return null;
@@ -235,21 +199,12 @@ export const useAICompletions = () => {
         });
 
         if (error) throw error;
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
         return data?.completion || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Generate docs error:", error);
-        const isApiKeyError = error.message?.includes("LOVABLE_API_KEY") || error.message?.includes("FunctionsFetchError");
-
         toast({
           title: "Xatolik",
-          description: isApiKeyError
-            ? "AI ishlashi uchun .env fayliga LOVABLE_API_KEY qo'shilishi kerak"
-            : "Dokumentatsiya yaratishda xatolik: " + (error.message || "Noma'lum xatolik"),
+          description: "Dokumentatsiya yaratishda xatolik",
           variant: "destructive",
         });
         return null;

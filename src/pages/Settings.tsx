@@ -1,258 +1,266 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Check, Monitor, Moon, Sun, Globe } from "lucide-react";
+import { ArrowLeft, Palette, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MangaButton } from "@/components/MangaButton";
-import { MangaCard } from "@/components/MangaCard";
 import { useTheme, Theme } from "@/contexts/ThemeContext";
-import { useLanguage, languages } from "@/contexts/LanguageContext";
-import { TelegramConnect } from "@/components/TelegramConnect";
 
-const themes: { id: Theme; name: string; description: string; colors: string[]; icon?: React.ElementType }[] = [
+const themes: { id: Theme; name: string; description: string; colors: string[] }[] = [
   {
     id: "tokyo-night",
     name: "Tokyo Night",
-    description: "VS Code uslubidagi qorong'u ko'k-binafsha tema",
+    description: "A dark blue-violet theme inspired by VS Code",
     colors: ["#1a1b26", "#7aa2f7", "#bb9af7", "#7dcfff"],
-    icon: Moon,
   },
   {
     id: "shades-of-purple",
     name: "Shades of Purple",
-    description: "Professional binafsha ranglar to'plami",
+    description: "A professional purple color palette",
     colors: ["#1e1e3f", "#fad000", "#a599e9", "#ff628c"],
   },
   {
     id: "github-dark",
     name: "GitHub Dark",
-    description: "GitHub ning klassik qorong'u temasi",
+    description: "GitHub's classic dark theme",
     colors: ["#0d1117", "#58a6ff", "#3fb950", "#f85149"],
-    icon: Monitor,
   },
   {
     id: "monokai-pro",
     name: "Monokai Pro",
-    description: "Mashhur Monokai ranglar sxemasi",
+    description: "The popular Monokai color scheme",
     colors: ["#2d2a2e", "#ffd866", "#ff6188", "#78dce8"],
   },
   {
     id: "dracula",
     name: "Dracula",
-    description: "Klassik Dracula qorong'u tema",
+    description: "Classic Dracula dark theme",
     colors: ["#282a36", "#ff79c6", "#bd93f9", "#50fa7b"],
   },
   {
     id: "one-dark-pro",
     name: "One Dark Pro",
-    description: "Atom editorigining mashhur temasi",
+    description: "The famous Atom editor theme",
     colors: ["#282c34", "#61afef", "#c678dd", "#98c379"],
   },
 ];
 
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+const LANG_STORAGE_KEY = "kodo-ui-language";
+
+const uiLanguages = [
+  { id: "en", name: "English", description: "Interface will be shown in English" },
+  { id: "uz", name: "Uzbek", description: "Interface will be shown in Uzbek" },
+] as const;
+
+type UiLanguage = (typeof uiLanguages)[number]["id"];
+
 const Settings = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const [language, setLanguage] = useState<UiLanguage>("en");
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem(LANG_STORAGE_KEY) as UiLanguage | null;
+    if (savedLanguage && uiLanguages.some((lang) => lang.id === savedLanguage)) {
+      setLanguage(savedLanguage);
+      document.documentElement.lang = savedLanguage;
+    }
+  }, []);
+
+  const handleLanguageChange = (nextLanguage: UiLanguage) => {
+    setLanguage(nextLanguage);
+    localStorage.setItem(LANG_STORAGE_KEY, nextLanguage);
+    document.documentElement.lang = nextLanguage;
+  };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-background relative">
+      <div className="fixed inset-0 bg-gradient-night pointer-events-none" />
+      <div className="fixed top-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-primary/[0.03] blur-[100px] pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto p-6 relative z-10">
         {/* Header */}
         <motion.div
-          className="flex items-center gap-4 mb-8"
-          initial={{ opacity: 0, y: -20 }}
+          className="flex items-center gap-4 mb-10"
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
         >
-          <MangaButton
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-5 w-5" />
+          <MangaButton variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
           </MangaButton>
           <div>
-            <h1 className="text-3xl font-jetbrains font-bold text-gradient-tokyo">
-              {t.settings.title}
+            <h1 className="text-2xl font-space font-bold text-foreground tracking-tight">
+              Settings
             </h1>
-            <p className="text-muted-foreground font-inter">
-              {t.settings.subtitle}
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Personalize your app
             </p>
           </div>
         </motion.div>
 
-        {/* Language Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <MangaCard glowColor="purple" hover={false} className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-primary/20">
-                <Globe className="h-6 w-6 text-purple-500" />
-              </div>
-              <div>
-                <h2 className="text-xl font-jetbrains font-bold text-foreground">
-                  {t.settings.language.title}
-                </h2>
-                <p className="text-muted-foreground text-sm font-inter">
-                  {t.settings.language.subtitle}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {languages.map((l, index) => (
-                <motion.div
-                  key={l.id}
-                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${language === l.id
-                    ? "border-purple-500 bg-purple-500/10 shadow-lg"
-                    : "border-border hover:border-muted-foreground bg-card/50"
-                    }`}
-                  onClick={() => setLanguage(l.id)}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {language === l.id && (
-                    <motion.div
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-purple-500"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 500 }}
-                    >
-                      <Check className="h-3.5 w-3.5 text-white" />
-                    </motion.div>
-                  )}
-
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-2xl">{l.flag}</span>
-                    <h3 className="font-jetbrains font-bold text-foreground text-lg">
-                      {l.name}
-                    </h3>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </MangaCard>
-        </motion.div>
-
         {/* Theme Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.1, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
         >
-          <MangaCard glowColor="blue" hover={false} className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-primary/20">
-                <Palette className="h-6 w-6 text-primary" />
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <Palette className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-jetbrains font-bold text-foreground">
-                  {t.settings.theme.title}
+                <h2 className="text-lg font-space font-bold text-foreground">
+                  Editor Theme
                 </h2>
-                <p className="text-muted-foreground text-sm font-inter">
-                  {t.settings.theme.subtitle}
+                <p className="text-sm text-muted-foreground">
+                  Choose your preferred editor theme
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {themes.map((t, index) => (
+            <motion.div
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              variants={container}
+              initial="hidden"
+              animate="show"
+            >
+              {themes.map((t) => (
                 <motion.div
                   key={t.id}
-                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${theme === t.id
-                    ? "border-primary bg-primary/10 shadow-lg"
-                    : "border-border hover:border-muted-foreground bg-card/50"
-                    }`}
+                  variants={item}
+                  className={`relative p-4 rounded-xl border cursor-pointer transition-all duration-300 group ${
+                    theme === t.id
+                      ? "border-primary/50 bg-primary/[0.08] shadow-glow"
+                      : "border-border/50 hover:border-border bg-card/30 hover:bg-card/50"
+                  }`}
                   onClick={() => setTheme(t.id)}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {theme === t.id && (
-                    <motion.div
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-primary"
+                    <motion.div 
+                      className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 500 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
                     >
                       <Check className="h-3.5 w-3.5 text-primary-foreground" />
                     </motion.div>
                   )}
 
-                  {/* Color Preview - Terminal style */}
-                  <div className="mb-4 p-3 rounded-lg bg-[#0d0d0d] border border-border/50">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.colors[3] }} />
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.colors[2] }} />
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.colors[1] }} />
-                    </div>
-                    <div className="flex gap-1">
+                  {/* Color Preview */}
+                  <div className="mb-4 rounded-lg overflow-hidden border border-border/30">
+                    <div className="h-3 flex">
                       {t.colors.map((color, idx) => (
-                        <div
-                          key={idx}
-                          className="h-6 flex-1 rounded"
-                          style={{ backgroundColor: color }}
-                        />
+                        <div key={idx} className="flex-1" style={{ backgroundColor: color }} />
                       ))}
+                    </div>
+                    <div className="p-2.5 space-y-1.5" style={{ backgroundColor: t.colors[0] }}>
+                      <div className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: t.colors[1], opacity: 0.6 }} />
+                      <div className="h-1.5 w-1/2 rounded-full" style={{ backgroundColor: t.colors[2], opacity: 0.4 }} />
+                      <div className="h-1.5 w-2/3 rounded-full" style={{ backgroundColor: t.colors[3], opacity: 0.3 }} />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-1">
-                    {t.icon && <t.icon className="h-4 w-4 text-muted-foreground" />}
-                    <h3 className="font-jetbrains font-bold text-foreground text-sm">
-                      {t.name}
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-inter">
+                  <h3 className="font-space font-semibold text-foreground text-sm mb-0.5">
+                    {t.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
                     {t.description}
                   </p>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
 
-            {/* Current theme indicator */}
-            <motion.div
-              className="mt-6 p-4 rounded-lg bg-muted/30 border border-border"
+            {/* Current theme */}
+            <motion.div 
+              className="mt-6 p-4 rounded-xl bg-muted/20 border border-border/30 flex items-center justify-between"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-inter">{t.settings.theme.current}</p>
-                  <p className="font-jetbrains font-bold text-foreground">
-                    {themes.find(t => t.id === theme)?.name}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  {themes.find(t => t.id === theme)?.colors.map((color, idx) => (
-                    <div
-                      key={idx}
-                      className="h-8 w-8 rounded-lg border border-border/50"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Current theme</p>
+                <p className="font-space font-semibold text-foreground text-sm mt-0.5">
+                  {themes.find(t => t.id === theme)?.name}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                {themes.find(t => t.id === theme)?.colors.map((color, idx) => (
+                  <div key={idx} className="h-7 w-7 rounded-lg border border-border/30" style={{ backgroundColor: color }} />
+                ))}
               </div>
             </motion.div>
-          </MangaCard>
+          </div>
         </motion.div>
 
-        {/* Telegram Connect Section */}
+        {/* Language Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          className="mt-6"
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
+          transition={{ delay: 0.2, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
         >
-          <TelegramConnect />
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <Palette className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-space font-bold text-foreground">
+                  Interface language
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Choose a language for the interface
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {uiLanguages.map((lang) => (
+                <motion.button
+                  key={lang.id}
+                  type="button"
+                  className={`relative p-4 rounded-xl border text-left cursor-pointer transition-all duration-300 ${
+                    language === lang.id
+                      ? "border-primary/50 bg-primary/[0.08] shadow-glow"
+                      : "border-border/50 hover:border-border bg-card/30 hover:bg-card/50"
+                  }`}
+                  onClick={() => handleLanguageChange(lang.id)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {language === lang.id && (
+                    <motion.div
+                      className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    >
+                      <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                    </motion.div>
+                  )}
+                  <h3 className="font-space font-semibold text-foreground text-sm mb-0.5">
+                    {lang.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {lang.description}
+                  </p>
+                </motion.button>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
     </div>

@@ -70,7 +70,7 @@ export const useFiles = (roomId: string | null) => {
         const firstFile = data.find(f => !f.is_folder);
         if (firstFile) setActiveFile(firstFile);
       }
-
+      
       setLoading(false);
     };
 
@@ -148,7 +148,7 @@ export const useFiles = (roomId: string | null) => {
   const updateFileContent = useCallback(
     async (fileId: string, newContent: string) => {
       isLocalChange.current = true;
-
+      
       setFiles(prev => prev.map(f => f.id === fileId ? { ...f, content: newContent } : f));
       setActiveFile(prev => prev?.id === fileId ? { ...prev, content: newContent } : prev);
 
@@ -168,26 +168,14 @@ export const useFiles = (roomId: string | null) => {
     [toast]
   );
 
-  // Delete file (recursive)
+  // Delete file
   const deleteFile = async (fileId: string) => {
     isLocalChange.current = true;
-
-    const fileToDelete = files.find(f => f.id === fileId);
-    if (!fileToDelete) return;
-
-    const idsToDelete = [fileId];
-
-    // If folder, find all children (recursive by path prefix)
-    if (fileToDelete.is_folder) {
-      const folderPath = fileToDelete.path + fileToDelete.name + "/";
-      const children = files.filter(f => f.path.startsWith(folderPath) || f.path === folderPath);
-      children.forEach(c => idsToDelete.push(c.id));
-    }
 
     const { error } = await supabase
       .from("files")
       .delete()
-      .in("id", idsToDelete);
+      .eq("id", fileId);
 
     if (error) {
       toast({
@@ -198,11 +186,10 @@ export const useFiles = (roomId: string | null) => {
       return;
     }
 
-    setFiles(prev => prev.filter(f => !idsToDelete.includes(f.id)));
-
-    // Close active file if it was deleted
-    if (activeFile && idsToDelete.includes(activeFile.id)) {
-      setActiveFile(null);
+    setFiles(prev => prev.filter(f => f.id !== fileId));
+    if (activeFile?.id === fileId) {
+      const remaining = files.filter(f => f.id !== fileId && !f.is_folder);
+      setActiveFile(remaining[0] || null);
     }
   };
 
@@ -232,7 +219,7 @@ export const useFiles = (roomId: string | null) => {
     activeFile,
     setActiveFile,
     loading,
-    createFile: (name: string, path: string, isFolder: boolean, language?: string, content?: string) =>
+    createFile: (name: string, path: string, isFolder: boolean, language?: string, content?: string) => 
       roomId ? createFile(roomId, name, path, isFolder, language, content) : Promise.resolve(null),
     updateFileContent,
     deleteFile,
@@ -254,7 +241,7 @@ export const useRoom = (roomIdOrName: string | null) => {
     const fetchRoom = async () => {
       // Check if it's a valid UUID format
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomIdOrName);
-
+      
       let data = null;
       let fetchError = null;
 
@@ -268,7 +255,7 @@ export const useRoom = (roomIdOrName: string | null) => {
         data = result.data;
         fetchError = result.error;
       }
-
+      
       // If not UUID or not found by ID, search by name
       if (!data) {
         const result = await supabase
@@ -300,26 +287,48 @@ export const useRoom = (roomIdOrName: string | null) => {
 
 export const createRoom = async (name: string) => {
   console.log("Creating room with name:", name);
-
+  
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("You must be signed in to create a room");
+  }
 
+  const { data: globalBans } = await supabase
+    .from("user_bans")
+    .select("expires_at")
+    .eq("user_id", user.id)
+    .eq("ban_type", "ban")
+    .is("room_id", null);
+
+  const now = new Date();
+  const isGloballyBanned = (globalBans || []).some(
+    (ban) => !ban.expires_at || new Date(ban.expires_at) > now
+  );
+
+  if (isGloballyBanned) {
+    throw new Error("You are banned and cannot create rooms");
+  }
+  
   const { data, error } = await supabase
     .from("rooms")
-    .insert([{
-      name,
-      code: "",
+    .insert([{ 
+      name, 
+      code: "", 
       language: "javascript",
-      created_by: user?.id || null
+      created_by: user?.id || null 
     }])
     .select()
     .single();
 
   if (error) {
     console.error("Supabase room creation error:", error);
-    throw new Error(error.message || "Xona yaratishda xatolik");
+    if (error.message?.toLowerCase().includes("row-level security")) {
+      throw new Error("You are not allowed to create a room");
+    }
+    throw new Error(error.message || "Failed to create room");
   }
-
+  
   console.log("Room created successfully:", data);
   return data;
 };
@@ -327,7 +336,22 @@ export const createRoom = async (name: string) => {
 // Join room as member
 export const joinRoom = async (roomId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { data: null, error: new Error("Not authenticated") };
+
+  const { data: bans } = await supabase
+    .from("user_bans")
+    .select("ban_type, expires_at, room_id")
+    .eq("user_id", user.id)
+    .or(`room_id.eq.${roomId},room_id.is.null`);
+
+  const now = new Date();
+  const isActive = (expiresAt: string | null) =>
+    !expiresAt || new Date(expiresAt) > now;
+
+  const hasBan = (bans || []).some((b) => b.ban_type === "ban" && isActive(b.expires_at));
+  if (hasBan) {
+    return { data: null, error: new Error("You are banned and cannot enter this room") };
+  }
 
   const { data, error } = await supabase
     .from("room_members")
@@ -337,8 +361,12 @@ export const joinRoom = async (roomId: string) => {
 
   if (error) {
     console.error("Error joining room:", error);
-    return null;
+    if (error.message?.toLowerCase().includes("row-level security")) {
+      // Membership row is not critical for entering the editor; skip silently.
+      return { data: null, error: null };
+    }
+    return { data: null, error };
   }
-
-  return data;
+  
+  return { data, error: null };
 };

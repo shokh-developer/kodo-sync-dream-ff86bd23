@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send, X, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAdmin } from "@/hooks/useAdmin";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -29,7 +31,10 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [mutedByAdmin, setMutedByAdmin] = useState(false);
   const { user, profile, isAuthenticated } = useAuth();
+  const { isUserMuted } = useAdmin();
+  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -98,8 +103,46 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
     }
   }, [messages, isOpen]);
 
+  // Check mute status
+  useEffect(() => {
+    if (!user?.id || !roomId) return;
+
+    const checkMute = async () => {
+      const muted = await isUserMuted(user.id, roomId);
+      setMutedByAdmin(muted);
+    };
+
+    checkMute();
+
+    const channel = supabase
+      .channel(`chat-mute:${roomId}:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_bans",
+          filter: `user_id=eq.${user.id}`,
+        },
+        checkMute
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId, user?.id, isUserMuted]);
+
   const handleSend = async () => {
     if (!newMessage.trim() || !user || sending) return;
+    if (mutedByAdmin) {
+      toast({
+        title: "Chat disabled",
+        description: "You are muted in this room.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSending(true);
     try {
@@ -128,7 +171,7 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("uz", {
+    return new Date(dateString).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -141,7 +184,7 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
       {/* Chat Toggle Button */}
       <motion.button
         className={cn(
-          "fixed bottom-4 right-[68px] z-50 h-12 w-12 rounded-xl shadow-lg transition-all duration-200",
+          "fixed bottom-4 right-[68px] z-[70] h-12 w-12 rounded-xl shadow-lg transition-all duration-200",
           "flex items-center justify-center backdrop-blur-sm relative",
           isOpen
             ? "bg-secondary/20 text-secondary border border-secondary/50"
@@ -173,13 +216,13 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 right-[68px] z-50 w-80 h-96 bg-card border border-border rounded-xl shadow-xl flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-[68px] z-[70] w-80 h-96 bg-card border border-border rounded-xl shadow-xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-primary" />
-                <span className="font-medium text-sm">Xona Chat</span>
+                <span className="font-medium text-sm">Room Chat</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -194,8 +237,8 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
                   <MessageCircle className="h-8 w-8 mb-2 opacity-50" />
-                  <p>Hech qanday xabar yo'q</p>
-                  <p className="text-xs">Birinchi bo'lib yozing!</p>
+                  <p>No messages yet</p>
+                  <p className="text-xs">Be the first to send one!</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -227,7 +270,7 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
                         >
                           {!isOwn && (
                             <p className="text-xs font-medium mb-1 opacity-70">
-                              {msg.profile?.display_name || "Anonim"}
+                              {msg.profile?.display_name || "Anonymous"}
                             </p>
                           )}
                           <p className="text-sm break-words">{msg.content}</p>
@@ -261,24 +304,27 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
                     ref={inputRef}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Xabar yozing..."
+                    placeholder={mutedByAdmin ? "You are muted by admin" : "Type a message..."}
                     className="flex-1 h-9 text-sm bg-background border-border"
-                    disabled={sending}
+                    disabled={sending || mutedByAdmin}
                   />
                   <Button
                     type="submit"
                     size="sm"
                     className="h-9 px-3 bg-primary text-primary-foreground"
-                    disabled={!newMessage.trim() || sending}
+                    disabled={!newMessage.trim() || sending || mutedByAdmin}
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>
+                {mutedByAdmin && (
+                  <p className="text-xs text-destructive mt-2">You are muted and cannot send messages.</p>
+                )}
               </div>
             ) : (
               <div className="p-3 border-t border-border text-center">
                 <p className="text-sm text-muted-foreground">
-                  Chat uchun tizimga kiring
+                  Sign in to use chat
                 </p>
               </div>
             )}

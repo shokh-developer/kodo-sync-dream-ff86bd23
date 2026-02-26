@@ -5,6 +5,90 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Try Google Gemini with rotating keys, fallback to Lovable AI
+async function callAI(systemPrompt: string, userPrompt: string, temperature: number, maxTokens: number): Promise<string> {
+  const googleKeys = [
+    Deno.env.get("GOOGLE_AI_KEY_1"),
+    Deno.env.get("GOOGLE_AI_KEY_2"),
+    Deno.env.get("GOOGLE_AI_KEY_3"),
+  ].filter(Boolean) as string[];
+
+  // Shuffle for rotation
+  for (let i = googleKeys.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [googleKeys[i], googleKeys[j]] = [googleKeys[j], googleKeys[i]];
+  }
+
+  // Try Google keys
+  for (const key of googleKeys) {
+    try {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
+            generationConfig: { temperature, maxOutputTokens: maxTokens },
+          }),
+        }
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      }
+      console.error(`Google key failed: ${resp.status}`);
+    } catch (e) {
+      console.error("Google key error:", e);
+    }
+  }
+
+  // Fallback to Lovable AI - try multiple models
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("No AI keys available");
+
+  const models = [
+    "google/gemini-2.5-flash",
+    "google/gemini-2.5-flash-lite",
+    "google/gemini-3-flash-preview",
+  ];
+
+  for (const model of models) {
+    try {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature,
+          max_tokens: maxTokens,
+          stream: false,
+        }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+      console.error(`Lovable AI model ${model} failed: ${resp.status}`);
+      // If rate limited, try next model
+      if (resp.status === 429 || resp.status === 402) continue;
+      // For other errors, also try next
+    } catch (e) {
+      console.error(`Lovable AI model ${model} error:`, e);
+    }
+  }
+
+  throw new Error("RATE_LIMIT");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -12,17 +96,11 @@ serve(async (req) => {
 
   try {
     const { code, language, cursorPosition, projectContext, type } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
 
     let systemPrompt = "";
     let userPrompt = "";
 
     if (type === "inline") {
-      // Inline completions - kod davom ettirish
       systemPrompt = `Sen GitHub Copilot kabi kod yordamchisisan. Foydalanuvchi yozayotgan kodni davom ettir.
 
 Qoidalar:
@@ -56,65 +134,39 @@ Kodning davomini yoz (FAQAT kod, hech qanday tushuntirma yoki markdown emas):`;
       userPrompt = `Bu ${language} kod uchun JSDoc/docstring yoz:\n\`\`\`${language}\n${code}\n\`\`\``;
     }
 
-    // Loyiha kontekstini qo'sh
     if (projectContext && projectContext.files) {
       systemPrompt += `\n\nLoyiha konteksti:\n${projectContext.files.map((f: any) => `- ${f.path}${f.name}`).join("\n")}`;
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: type === "inline" ? 0.3 : 0.7,
-        max_tokens: type === "inline" ? 256 : 2048,
-        stream: false,
-      }),
-    });
+    const temp = type === "inline" ? 0.3 : 0.7;
+    const tokens = type === "inline" ? 256 : 2048;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Biroz kuting va qayta urinib ko'ring." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI xizmati bepul rejimda ishlayapti. Hozircha limitga yetdingiz." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
+    const completion = await callAI(systemPrompt, userPrompt, temp, tokens);
 
-    const data = await response.json();
-    let completion = data.choices?.[0]?.message?.content || "";
-
-    // Inline completion uchun kod bloklarini olib tashla
+    let result = completion;
     if (type === "inline") {
-      completion = completion
-        .replace(/```[\w]*\n?/g, "")
-        .replace(/```/g, "")
-        .trim();
+      result = result.replace(/```[\w]*\n?/g, "").replace(/```/g, "").trim();
     }
 
-    return new Response(JSON.stringify({ completion, type }), {
+    return new Response(JSON.stringify({ completion: result, type }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Completions error:", error);
+    
+    if (error.message === "RATE_LIMIT") {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Biroz kuting va qayta urinib ko'ring." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (error.message === "PAYMENT_REQUIRED") {
+      return new Response(
+        JSON.stringify({ error: "AI xizmati hozir band. Biroz kuting va qayta urinib ko'ring." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
