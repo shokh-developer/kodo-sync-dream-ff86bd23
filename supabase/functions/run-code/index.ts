@@ -5,62 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Cache the compiler list
-let cachedCompilers: Array<{ name: string; language: string }> | null = null;
-let cacheTime = 0;
+// Piston API - free code execution engine
+const PISTON_API = "https://emkc.org/api/v2/piston/execute";
 
-async function getCompilerList(): Promise<Array<{ name: string; language: string }>> {
-  if (cachedCompilers && Date.now() - cacheTime < 3600000) return cachedCompilers;
-  try {
-    const res = await fetch("https://wandbox.org/api/list.json");
-    if (res.ok) {
-      cachedCompilers = await res.json();
-      cacheTime = Date.now();
-      return cachedCompilers!;
-    }
-  } catch (e) {
-    console.error("Failed to fetch compiler list:", e);
-  }
-  return [];
-}
-
-function findCompiler(compilers: Array<{ name: string; language: string }>, language: string): string | null {
-  // Map our language names to Wandbox language names
-  const langMap: Record<string, string> = {
-    python: "Python",
-    javascript: "JavaScript",
-    typescript: "TypeScript",
-    cpp: "C++",
-    c: "C",
-    java: "Java",
-    go: "Go",
-    rust: "Rust",
-    php: "PHP",
-    ruby: "Ruby",
-    csharp: "C#",
-    lua: "Lua",
-    perl: "Perl",
-    bash: "Bash script",
-    scala: "Scala",
-    r: "R",
-    swift: "Swift",
-    kotlin: "Kotlin",
-  };
-
-  const wandboxLang = langMap[language];
-  if (!wandboxLang) return null;
-
-  // Find matching compilers
-  const matching = compilers.filter(c => c.language === wandboxLang);
-  if (matching.length === 0) return null;
-
-  // Prefer non-head versions, then head
-  const nonHead = matching.filter(c => !c.name.includes("head"));
-  if (nonHead.length > 0) return nonHead[nonHead.length - 1].name; // Latest non-head
-  return matching[0].name; // head version
-}
+// Language mappings for Piston API
+const languageMap: Record<string, { language: string; version: string }> = {
+  javascript: { language: "javascript", version: "18.15.0" },
+  typescript: { language: "typescript", version: "5.0.3" },
+  python: { language: "python", version: "3.10.0" },
+  cpp: { language: "c++", version: "10.2.0" },
+  c: { language: "c", version: "10.2.0" },
+  java: { language: "java", version: "15.0.2" },
+  go: { language: "go", version: "1.16.2" },
+  rust: { language: "rust", version: "1.68.2" },
+  php: { language: "php", version: "8.2.3" },
+  ruby: { language: "ruby", version: "3.0.1" },
+  csharp: { language: "csharp", version: "6.12.0" },
+};
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -75,64 +39,74 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Executing ${language} code`);
-
-    // Get compiler list
-    const compilers = await getCompilerList();
-    console.log(`Got ${compilers.length} compilers from Wandbox`);
-
-    const compiler = findCompiler(compilers, language);
+    const langConfig = languageMap[language];
     
-    if (!compiler) {
+    if (!langConfig) {
       return new Response(
-        JSON.stringify({ error: `No compiler found for ${language}`, success: false }),
+        JSON.stringify({ 
+          error: `Unsupported language: ${language}`,
+          supported: Object.keys(languageMap)
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Using compiler: ${compiler}`);
+    console.log(`Executing ${language} code with stdin: ${stdin ? 'yes' : 'no'}`);
 
-    const res = await fetch("https://wandbox.org/api/compile.json", {
+    // Call Piston API
+    const response = await fetch(PISTON_API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        code,
-        compiler,
+        language: langConfig.language,
+        version: langConfig.version,
+        files: [
+          {
+            name: getFileName(language),
+            content: code,
+          },
+        ],
         stdin: stdin || "",
-        save: false,
+        args: [],
+        compile_timeout: 10000,
+        run_timeout: 5000,
       }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`Compiler ${compiler} failed:`, errText);
-      
-      // Try head version as fallback
-      const headCompiler = findHeadCompiler(compilers, language);
-      if (headCompiler && headCompiler !== compiler) {
-        console.log(`Trying head compiler: ${headCompiler}`);
-        return await tryCompiler(headCompiler, code, stdin, language);
-      }
-      
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Piston API error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Execution failed", details: errText, success: false }),
+        JSON.stringify({ error: "Failed to execute code", details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await res.json();
-    
-    // Check for infra errors
-    if (data.program_error?.includes("catatonit") || data.program_error?.includes("No such file or directory")) {
-      console.log("Infrastructure error, trying head compiler...");
-      const headCompiler = findHeadCompiler(compilers, language);
-      if (headCompiler && headCompiler !== compiler) {
-        return await tryCompiler(headCompiler, code, stdin, language);
-      }
-    }
+    const result = await response.json();
+    console.log("Execution result:", result);
+
+    // Format the response
+    const output = {
+      success: true,
+      language: result.language,
+      version: result.version,
+      compile: result.compile ? {
+        stdout: result.compile.stdout || "",
+        stderr: result.compile.stderr || "",
+        code: result.compile.code,
+      } : null,
+      run: {
+        stdout: result.run?.stdout || "",
+        stderr: result.run?.stderr || "",
+        code: result.run?.code,
+        signal: result.run?.signal,
+      },
+    };
 
     return new Response(
-      JSON.stringify(formatResult(data, language, compiler)),
+      JSON.stringify(output),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -140,73 +114,25 @@ serve(async (req) => {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: errorMessage, success: false }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-function findHeadCompiler(compilers: Array<{ name: string; language: string }>, language: string): string | null {
-  const langMap: Record<string, string> = {
-    python: "Python", javascript: "JavaScript", typescript: "TypeScript",
-    cpp: "C++", c: "C", java: "Java", go: "Go", rust: "Rust",
-    php: "PHP", ruby: "Ruby", csharp: "C#", lua: "Lua", perl: "Perl",
-    bash: "Bash script", scala: "Scala", r: "R", swift: "Swift", kotlin: "Kotlin",
+function getFileName(language: string): string {
+  const extensions: Record<string, string> = {
+    javascript: "index.js",
+    typescript: "index.ts",
+    python: "main.py",
+    cpp: "main.cpp",
+    c: "main.c",
+    java: "Main.java",
+    go: "main.go",
+    rust: "main.rs",
+    php: "index.php",
+    ruby: "main.rb",
+    csharp: "Program.cs",
   };
-  const wandboxLang = langMap[language];
-  if (!wandboxLang) return null;
-  const head = compilers.find(c => c.language === wandboxLang && c.name.includes("head"));
-  return head?.name || null;
-}
-
-async function tryCompiler(compiler: string, code: string, stdin: string, language: string) {
-  try {
-    const res = await fetch("https://wandbox.org/api/compile.json", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, compiler, stdin: stdin || "", save: false }),
-    });
-    
-    if (!res.ok) {
-      const errText = await res.text();
-      return new Response(
-        JSON.stringify({ error: "Execution failed", details: errText, success: false }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const data = await res.json();
-    return new Response(
-      JSON.stringify(formatResult(data, language, compiler)),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ error: "Compiler failed", success: false }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-}
-
-function formatResult(data: any, language: string, compiler: string) {
-  return {
-    success: true,
-    language,
-    version: compiler,
-    compile: data.compiler_error ? {
-      stdout: data.compiler_output || "",
-      stderr: data.compiler_error,
-      code: 1,
-    } : (data.compiler_output ? {
-      stdout: data.compiler_output,
-      stderr: "",
-      code: 0,
-    } : null),
-    run: {
-      stdout: data.program_output || "",
-      stderr: data.program_error || "",
-      code: data.status === "0" || data.status === 0 ? 0 : (parseInt(String(data.status)) || 0),
-      signal: data.signal || "",
-    },
-  };
+  return extensions[language] || "main.txt";
 }

@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 import { useRoom, useFiles, joinRoom } from "@/hooks/useFiles";
 import { usePresence } from "@/hooks/usePresence";
@@ -22,6 +23,7 @@ import { debounce } from "@/lib/utils";
 
 const Room = () => {
   const { id } = useParams<{ id: string }>();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { room, loading: roomLoading, error } = useRoom(id || null);
   const { user, isAuthenticated } = useAuth();
@@ -62,7 +64,7 @@ const Room = () => {
     if (!file || file.is_folder) return;
     setActiveFile(file);
     setLocalContent(file.content);
-    
+
     if (!openTabs.includes(file.id)) {
       setOpenTabs(prev => [...prev, file.id]);
     }
@@ -126,7 +128,7 @@ const Room = () => {
         >
           <Loader2 className="h-12 w-12 text-primary animate-spin" />
           <p className="text-lg font-orbitron text-muted-foreground">
-            Xona yuklanmoqda...
+            {t.room.loading}
           </p>
         </motion.div>
       </div>
@@ -142,14 +144,14 @@ const Room = () => {
           animate={{ opacity: 1, scale: 1 }}
         >
           <h1 className="text-3xl font-orbitron font-bold text-destructive mb-4">
-            Xona topilmadi
+            {t.room.not_found}
           </h1>
           <p className="text-muted-foreground font-rajdhani mb-6">
-            Bu xona mavjud emas yoki o'chirilgan
+            {t.room.not_found_desc}
           </p>
           <MangaButton variant="primary" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
-            Bosh sahifaga qaytish
+            {t.room.back_home}
           </MangaButton>
         </motion.div>
       </div>
@@ -170,7 +172,7 @@ const Room = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </MangaButton>
-        
+
         <MangaButton
           variant="ghost"
           size="icon"
@@ -183,14 +185,14 @@ const Room = () => {
             <PanelLeft className="h-5 w-5" />
           )}
         </MangaButton>
-        
+
         {/* Admin Panel in Header */}
         {isModerator && (
           <div className="flex items-center border-r border-border px-2">
             <AdminPanel roomId={id} />
           </div>
         )}
-        
+
         <div className="flex-1">
           <EditorHeader
             roomId={room.id}
@@ -199,32 +201,8 @@ const Room = () => {
             onlineUsers={onlineUsers}
             files={files}
             onFilesImported={async (importedFiles) => {
-              // First create all unique folders
-              const folderPaths = new Set<string>();
               for (const file of importedFiles) {
-                // Extract all intermediate folder paths
-                const parts = file.path.split("/").filter(Boolean);
-                let currentPath = "/";
-                for (const part of parts) {
-                  const folderFullPath = currentPath + part + "/";
-                  folderPaths.add(JSON.stringify({ name: part, path: currentPath }));
-                  currentPath = folderFullPath;
-                }
-              }
-              
-              // Create folders first
-              for (const folderJson of folderPaths) {
-                const { name, path } = JSON.parse(folderJson);
-                // Check if folder already exists
-                const exists = files.some(f => f.is_folder && f.name === name && f.path === path);
-                if (!exists) {
-                  await createFile(name, path, true);
-                }
-              }
-
-              // Then create files
-              for (const file of importedFiles) {
-                await createFile(file.name, file.path, false, file.language, file.content);
+                await createFile(file.name, file.path, file.is_folder, file.language, file.content);
               }
             }}
           />
@@ -301,8 +279,8 @@ const Room = () => {
       <VoiceChat roomId={id || ""} />
 
       {/* AI Assistant - GitHub Copilot style */}
-      <AIAssistant 
-        code={localContent} 
+      <AIAssistant
+        code={localContent}
         language={activeFile?.language || "javascript"}
         files={files}
         activeFile={activeFile}

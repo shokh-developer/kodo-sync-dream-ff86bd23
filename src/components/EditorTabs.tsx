@@ -27,12 +27,19 @@ const getFileIcon = (name: string) => {
     case "tsx":
       return <FileCode className={cn(iconClass, "text-blue-400")} />;
     case "html":
+    case "vue":
+    case "svelte":
       return <Globe className={cn(iconClass, "text-orange-400")} />;
     case "css":
     case "scss":
+    case "sass":
       return <Hash className={cn(iconClass, "text-pink-400")} />;
     case "json":
       return <FileJson className={cn(iconClass, "text-yellow-300")} />;
+    case "sql":
+      return <FileText className={cn(iconClass, "text-amber-400")} />;
+    case "php":
+      return <FileCode className={cn(iconClass, "text-indigo-400")} />;
     case "py":
       return <Terminal className={cn(iconClass, "text-green-400")} />;
     case "md":

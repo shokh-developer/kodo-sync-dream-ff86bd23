@@ -4,28 +4,28 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const mangaButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 tracking-wide",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-orbitron font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 uppercase tracking-wider",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:brightness-110",
+          "bg-gradient-manga text-primary-foreground glow-pink hover:scale-105 active:scale-95",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-lg shadow-secondary/20 hover:shadow-secondary/35 hover:brightness-110",
+          "bg-secondary text-secondary-foreground glow-blue hover:brightness-110 hover:scale-105 active:scale-95",
         accent:
-          "bg-accent text-accent-foreground shadow-lg shadow-accent/20 hover:brightness-110",
+          "bg-accent text-accent-foreground hover:brightness-110 hover:scale-105 active:scale-95",
         outline:
-          "border border-border bg-transparent text-foreground hover:bg-muted hover:border-primary/50 hover:text-primary",
+          "border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground hover:glow-pink",
         ghost:
-          "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+          "bg-transparent text-foreground hover:bg-muted hover:text-primary",
         cyber:
-          "bg-card border border-border text-foreground hover:border-primary/50 hover:text-primary shadow-sm",
+          "bg-cyber-mid border border-border text-foreground hover:border-primary hover:text-primary hover:glow-pink",
       },
       size: {
-        sm: "h-8 px-3 text-xs rounded-lg font-medium",
-        md: "h-10 px-5 text-sm rounded-lg",
-        lg: "h-12 px-7 text-base rounded-xl",
-        icon: "h-9 w-9 rounded-lg",
+        sm: "h-9 px-4 text-sm rounded-md",
+        md: "h-11 px-6 text-base rounded-lg",
+        lg: "h-14 px-8 text-lg rounded-xl",
+        icon: "h-10 w-10 rounded-lg",
       },
     },
     defaultVariants: {
@@ -48,8 +48,7 @@ const MangaButton = React.forwardRef<HTMLButtonElement, MangaButtonProps>(
         ref={ref}
         className={cn(mangaButtonVariants({ variant, size, className }))}
         whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        whileTap={{ scale: 0.98 }}
         {...(props as any)}
       >
         {children}

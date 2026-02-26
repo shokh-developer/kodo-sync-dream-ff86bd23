@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
@@ -51,21 +52,30 @@ interface FileExplorerProps {
 
 const getFileIcon = (name: string, language: string) => {
   const ext = name.split(".").pop()?.toLowerCase();
-  
+
   switch (ext) {
     case "js":
     case "jsx":
+    case "mjs":
+    case "cjs":
       return <Braces className="h-4 w-4 text-yellow-400" />;
     case "ts":
     case "tsx":
       return <FileCode className="h-4 w-4 text-blue-400" />;
     case "html":
+    case "vue":
+    case "svelte":
       return <Globe className="h-4 w-4 text-orange-400" />;
     case "css":
     case "scss":
+    case "sass":
       return <Hash className="h-4 w-4 text-pink-400" />;
     case "json":
       return <FileJson className="h-4 w-4 text-yellow-300" />;
+    case "sql":
+      return <FileText className="h-4 w-4 text-amber-400" />;
+    case "php":
+      return <FileCode className="h-4 w-4 text-indigo-400" />;
     case "py":
       return <Terminal className="h-4 w-4 text-green-400" />;
     case "md":
@@ -77,33 +87,36 @@ const getFileIcon = (name: string, language: string) => {
     case "h":
     case "hpp":
       return <FileCode className="h-4 w-4 text-blue-500" />;
-    case "java":
-      return <FileCode className="h-4 w-4 text-red-400" />;
-    case "go":
-      return <FileCode className="h-4 w-4 text-cyan-400" />;
-    case "rs":
-      return <FileCode className="h-4 w-4 text-orange-500" />;
-    case "php":
-      return <FileCode className="h-4 w-4 text-purple-400" />;
-    case "rb":
-      return <FileCode className="h-4 w-4 text-red-500" />;
-    case "swift":
-      return <FileCode className="h-4 w-4 text-orange-400" />;
-    case "kt":
-      return <FileCode className="h-4 w-4 text-violet-400" />;
-    case "dart":
-      return <FileCode className="h-4 w-4 text-sky-400" />;
-    case "lua":
-      return <FileCode className="h-4 w-4 text-indigo-400" />;
-    case "sh":
-      return <Terminal className="h-4 w-4 text-green-500" />;
-    case "sql":
-      return <FileCode className="h-4 w-4 text-yellow-500" />;
-    case "scala":
-      return <FileCode className="h-4 w-4 text-red-300" />;
     default:
       return <File className="h-4 w-4 text-muted-foreground" />;
   }
+};
+
+const getLanguageBadge = (file: FileItem) => {
+  const name = file.name.toLowerCase();
+  const path = file.path.toLowerCase();
+  const ext = name.split(".").pop()?.toLowerCase();
+
+  if (ext === "vue") return "Vue";
+  if (ext === "svelte") return "Svelte";
+  if (ext === "scss" || ext === "sass") return "Sass";
+  if (ext === "sql") return "SQL";
+  if (ext === "php") return "PHP";
+  if (ext === "mjs" || ext === "cjs") return "Node.js";
+  if (ext === "html") return "HTML";
+  if (ext === "css") return "CSS";
+  if (ext === "ts" || ext === "tsx") {
+    if (name.endsWith(".component.ts") || name.endsWith(".component.html")) return "Angular";
+    if (ext === "tsx" && (path.includes("/pages/") || path.includes("/app/"))) return "Next.js";
+    if (ext === "tsx") return "React";
+    return "TypeScript";
+  }
+  if (ext === "js" || ext === "jsx") {
+    if (ext === "jsx" && (path.includes("/pages/") || path.includes("/app/"))) return "Next.js";
+    if (ext === "jsx") return "React";
+    return "JavaScript";
+  }
+  return null;
 };
 
 const getLanguageFromName = (name: string): string => {
@@ -115,11 +128,17 @@ const getLanguageFromName = (name: string): string => {
     case "ts":
     case "tsx":
       return "typescript";
+    case "vue":
+      return "vue";
+    case "svelte":
+      return "svelte";
     case "html":
       return "html";
     case "css":
-    case "scss":
       return "css";
+    case "scss":
+    case "sass":
+      return "scss";
     case "json":
       return "json";
     case "py":
@@ -128,6 +147,8 @@ const getLanguageFromName = (name: string): string => {
       return "markdown";
     case "sql":
       return "sql";
+    case "php":
+      return "php";
     case "cpp":
     case "cc":
     case "cxx":
@@ -137,32 +158,6 @@ const getLanguageFromName = (name: string): string => {
     case "h":
     case "hpp":
       return "cpp";
-    case "java":
-      return "java";
-    case "go":
-      return "go";
-    case "rs":
-      return "rust";
-    case "php":
-      return "php";
-    case "rb":
-      return "ruby";
-    case "swift":
-      return "swift";
-    case "kt":
-      return "kotlin";
-    case "dart":
-      return "dart";
-    case "lua":
-      return "lua";
-    case "pl":
-      return "perl";
-    case "r":
-      return "r";
-    case "scala":
-      return "scala";
-    case "sh":
-      return "bash";
     default:
       return "plaintext";
   }
@@ -181,6 +176,7 @@ const FileExplorer = ({
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const { t } = useLanguage();
 
   const toggleFolder = (path: string) => {
     setExpandedFolders(prev => {
@@ -196,7 +192,7 @@ const FileExplorer = ({
 
   const handleCreate = () => {
     if (!newName.trim() || !isCreating) return;
-    
+
     const language = isCreating.type === "file" ? getLanguageFromName(newName) : "javascript";
     onCreateFile(newName.trim(), isCreating.path, isCreating.type === "folder", language);
     setNewName("");
@@ -220,7 +216,7 @@ const FileExplorer = ({
     const items = files.filter(f => f.path === currentPath);
     const folders = items.filter(f => f.is_folder);
     const regularFiles = items.filter(f => !f.is_folder);
-    
+
     return [...folders, ...regularFiles];
   };
 
@@ -272,7 +268,7 @@ const FileExplorer = ({
                   {getFileIcon(file.name, file.language)}
                 </>
               )}
-              
+
               {editingId === file.id ? (
                 <div className="flex items-center gap-1 flex-1">
                   <Input
@@ -302,11 +298,18 @@ const FileExplorer = ({
                   />
                 </div>
               ) : (
-                <span className="truncate flex-1">{file.name}</span>
+                <>
+                  <span className="truncate flex-1">{file.name}</span>
+                  {getLanguageBadge(file) && (
+                    <span className="ml-2 px-2 py-0.5 text-[10px] rounded bg-muted/60 text-muted-foreground border border-border">
+                      {getLanguageBadge(file)}
+                    </span>
+                  )}
+                </>
               )}
             </motion.div>
           </ContextMenuTrigger>
-          
+
           <ContextMenuContent className="bg-cyber-mid border-border">
             {file.is_folder && (
               <>
@@ -315,14 +318,14 @@ const FileExplorer = ({
                   onClick={() => setIsCreating({ type: "file", path: childPath })}
                 >
                   <FilePlus className="h-4 w-4 mr-2" />
-                  Yangi fayl
+                  {t.explorer.new_file}
                 </ContextMenuItem>
                 <ContextMenuItem
                   className="text-foreground hover:bg-muted cursor-pointer"
                   onClick={() => setIsCreating({ type: "folder", path: childPath })}
                 >
                   <FolderPlus className="h-4 w-4 mr-2" />
-                  Yangi papka
+                  {t.explorer.new_folder}
                 </ContextMenuItem>
                 <ContextMenuSeparator className="bg-border" />
               </>
@@ -332,14 +335,14 @@ const FileExplorer = ({
               onClick={() => startEditing(file)}
             >
               <Edit2 className="h-4 w-4 mr-2" />
-              Nomini o'zgartirish
+              {t.explorer.rename}
             </ContextMenuItem>
             <ContextMenuItem
               className="text-destructive hover:bg-destructive/20 cursor-pointer"
               onClick={() => onDeleteFile(file.id)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              O'chirish
+              {t.explorer.delete}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
@@ -354,7 +357,7 @@ const FileExplorer = ({
               transition={{ duration: 0.2 }}
             >
               {children.map(child => renderItem(child, depth + 1))}
-              
+
               {/* New item input inside folder */}
               {isCreating?.path === childPath && (
                 <div
@@ -369,7 +372,7 @@ const FileExplorer = ({
                   <Input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder={isCreating.type === "folder" ? "papka nomi..." : "fayl nomi..."}
+                    placeholder={isCreating.type === "folder" ? t.explorer.folder_name_placeholder : t.explorer.file_name_placeholder}
                     className="h-6 text-xs bg-cyber-dark border-primary flex-1"
                     autoFocus
                     onKeyDown={(e) => {
@@ -401,20 +404,20 @@ const FileExplorer = ({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <span className="text-xs font-orbitron text-muted-foreground uppercase tracking-wider">
-          Explorer
+          {t.explorer.title}
         </span>
         <div className="flex items-center gap-1">
           <button
             className="p-1 rounded hover:bg-muted transition-colors"
             onClick={() => setIsCreating({ type: "file", path: "/" })}
-            title="Yangi fayl"
+            title={t.explorer.new_file}
           >
             <FilePlus className="h-4 w-4 text-muted-foreground hover:text-primary" />
           </button>
           <button
             className="p-1 rounded hover:bg-muted transition-colors"
             onClick={() => setIsCreating({ type: "folder", path: "/" })}
-            title="Yangi papka"
+            title={t.explorer.new_folder}
           >
             <FolderPlus className="h-4 w-4 text-muted-foreground hover:text-primary" />
           </button>
@@ -424,7 +427,7 @@ const FileExplorer = ({
       {/* File tree */}
       <div className="flex-1 overflow-y-auto py-2">
         {rootItems.map(item => renderItem(item, 0))}
-        
+
         {/* New item input at root */}
         {isCreating?.path === "/" && (
           <div className="flex items-center gap-2 px-2 py-1 ml-2">
@@ -436,7 +439,7 @@ const FileExplorer = ({
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder={isCreating.type === "folder" ? "papka nomi..." : "fayl nomi..."}
+              placeholder={isCreating.type === "folder" ? t.explorer.folder_name_placeholder : t.explorer.file_name_placeholder}
               className="h-6 text-xs bg-cyber-dark border-primary flex-1"
               autoFocus
               onKeyDown={(e) => {

@@ -41,6 +41,29 @@ const CodeEditorWithAI = ({
   readOnly = false,
   files = [],
 }: CodeEditorWithAIProps) => {
+  const getMonacoLanguage = (lang: string) => {
+    switch (lang) {
+      case "scss":
+      case "sass":
+        return "scss";
+      case "sql":
+        return "sql";
+      case "php":
+        return "php";
+      case "vue":
+      case "svelte":
+        return "html";
+      case "react":
+      case "nodejs":
+        return "javascript";
+      case "nextjs":
+      case "angular":
+        return "typescript";
+      default:
+        return lang;
+    }
+  };
+
   const [mounted, setMounted] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [actionPosition, setActionPosition] = useState({ x: 0, y: 0 });
@@ -318,7 +341,7 @@ const CodeEditorWithAI = ({
       <div className="h-full w-full rounded-lg overflow-hidden border border-border">
         <Editor
           height="100%"
-          language={language}
+          language={getMonacoLanguage(language)}
           value={code}
           onChange={handleChange}
           onMount={handleEditorDidMount}
@@ -354,7 +377,7 @@ const CodeEditorWithAI = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-primary/20 rounded-lg border border-primary/30"
+            className="absolute bottom-16 right-4 flex items-center gap-2 px-3 py-2 bg-primary/20 rounded-lg border border-primary/30 z-50 backdro-blur-sm"
           >
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span className="text-xs text-primary">AI tahlil qilmoqda...</span>
@@ -369,7 +392,7 @@ const CodeEditorWithAI = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-4 left-4 flex items-center gap-4 px-3 py-2 bg-background/90 rounded-lg border border-border"
+            className="absolute bottom-16 left-4 flex items-center gap-4 px-3 py-2 bg-background/90 rounded-lg border border-border z-40"
           >
             <span className="text-xs text-muted-foreground">
               <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">Tab</kbd> qabul qilish
