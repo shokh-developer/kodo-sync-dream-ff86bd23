@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { MangaButton } from "@/components/MangaButton";
-import { MangaCard } from "@/components/MangaCard";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,21 +13,8 @@ import {
 import { createRoom } from "@/hooks/useFiles";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/AuthModal";
-import { Code, Users, Zap, ArrowRight, Plus, LogIn, Terminal, User, LogOut, Settings, Sparkles, Layers, Globe } from "lucide-react";
+import { Code, Users, Zap, ArrowRight, Plus, LogIn, Terminal, User, LogOut, Settings, Layers, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
 
 const Index = () => {
   const [roomName, setRoomName] = useState("");
@@ -42,29 +27,16 @@ const Index = () => {
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
-      toast({
-        title: "Room name required",
-        description: "Please enter a room name",
-        variant: "destructive",
-      });
+      toast({ title: "Room name required", description: "Please enter a room name", variant: "destructive" });
       return;
     }
-
     setIsCreating(true);
     try {
       const room = await createRoom(roomName);
-      if (room?.id) {
-        navigate(`/room/${room.id}`);
-      } else {
-        throw new Error("Room was not created");
-      }
+      if (room?.id) navigate(`/room/${room.id}`);
+      else throw new Error("Room was not created");
     } catch (error: any) {
-      console.error("Room creation error:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "An error occurred while creating the room",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
     } finally {
       setIsCreating(false);
     }
@@ -72,19 +44,11 @@ const Index = () => {
 
   const handleJoinRoom = () => {
     if (!joinRoomId.trim()) {
-      toast({
-        title: "Room ID required",
-        description: "Please enter a room ID",
-        variant: "destructive",
-      });
+      toast({ title: "Room ID required", description: "Please enter a room ID", variant: "destructive" });
       return;
     }
-    
     let roomId = joinRoomId.trim();
-    if (roomId.includes("/room/")) {
-      roomId = roomId.split("/room/").pop() || roomId;
-    }
-    
+    if (roomId.includes("/room/")) roomId = roomId.split("/room/").pop() || roomId;
     navigate(`/room/${roomId}`);
   };
 
@@ -99,279 +63,174 @@ const Index = () => {
   };
 
   const features = [
-    {
-      icon: Layers,
-      title: "10+ Languages",
-      description: "C++, Python, JavaScript, Java, Go, Rust, TypeScript and more",
-      color: "pink" as const,
-    },
-    {
-      icon: Users,
-      title: "Real-time Collaboration",
-      description: "Code together with your teammates in the same workspace",
-      color: "blue" as const,
-    },
-    {
-      icon: Terminal,
-      title: "Run Code",
-      description: "Run code directly in the browser",
-      color: "green" as const,
-    },
+    { icon: Layers, title: "10+ Languages", description: "C++, Python, JavaScript, Java, Go, Rust, TypeScript and more" },
+    { icon: Users, title: "Real-time Collaboration", description: "Code together with your teammates in the same workspace" },
+    { icon: Terminal, title: "Run Code", description: "Execute code directly in the browser with instant feedback" },
   ];
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-hero-glow pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-night pointer-events-none" />
-      
-      {/* Ambient glow orbs */}
-      <div className="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/[0.04] blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/[0.04] blur-[120px] pointer-events-none" />
-
+    <div className="min-h-screen bg-background">
       {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/60 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
+      <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-md bg-primary/15 flex items-center justify-center">
+              <Code className="h-4 w-4 text-primary" />
             </div>
-            <span className="font-space font-bold text-foreground text-lg tracking-tight">
-              CodeForge
-            </span>
+            <span className="font-semibold text-foreground text-sm tracking-tight">CodeForge</span>
           </div>
 
           {loading ? (
-            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+            <div className="w-7 h-7 rounded-full bg-muted animate-pulse" />
           ) : isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/50 transition-colors">
-                  <Avatar className="h-7 w-7">
+                <button className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary transition-colors duration-150">
+                  <Avatar className="h-6 w-6">
                     <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary/15 text-primary text-xs font-medium">
+                    <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-medium">
                       {getInitials(profile?.display_name || user?.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm text-foreground hidden sm:inline font-medium">
+                  <span className="text-sm text-foreground hidden sm:inline">
                     {profile?.display_name || user?.email?.split("@")[0]}
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 bg-card/95 backdrop-blur-xl border-border/50 rounded-xl p-1.5">
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
-                  <User className="h-4 w-4 mr-2.5 text-muted-foreground" />
-                  Profile
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" /> Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
-                  <Code className="h-4 w-4 mr-2.5 text-muted-foreground" />
-                  My rooms
+                <DropdownMenuItem onClick={() => navigate("/my-rooms")} className="cursor-pointer">
+                  <Code className="h-4 w-4 mr-2 text-muted-foreground" /> My Rooms
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings")} className="text-foreground cursor-pointer rounded-lg px-3 py-2.5">
-                  <Settings className="h-4 w-4 mr-2.5 text-muted-foreground" />
-                  Settings
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2 text-muted-foreground" /> Settings
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1.5 bg-border/50" />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer rounded-lg px-3 py-2.5">
-                  <LogOut className="h-4 w-4 mr-2.5" />
-                  Sign out
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <MangaButton
-              variant="primary"
-              size="sm"
-              onClick={() => setShowAuthModal(true)}
-            >
-              <User className="h-3.5 w-3.5" />
-              Sign in
-            </MangaButton>
+            <Button size="sm" onClick={() => setShowAuthModal(true)} className="h-8 text-xs">
+              <User className="h-3.5 w-3.5 mr-1.5" /> Sign in
+            </Button>
           )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-6 pt-32 pb-20 relative z-10">
-        {/* Header */}
-        <motion.header
-          className="text-center mb-20"
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
-          <motion.div variants={item} className="mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium tracking-wide">
-              <Globe className="h-3 w-3" />
-              Real-time Collaborative IDE
-            </span>
-          </motion.div>
-
-          <motion.h1 variants={item} className="text-5xl md:text-7xl lg:text-8xl font-space font-bold tracking-tight leading-[0.95] mb-6">
-            <span className="text-gradient-tokyo">Code</span>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-16">
+        <header className="text-center mb-14 animate-fade-in">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-5">
+            <Globe className="h-3 w-3" />
+            Real-time Collaborative IDE
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-4">
+            <span className="text-primary">Code</span>
             <span className="text-foreground">Forge</span>
-          </motion.h1>
-          
-          <motion.p variants={item} className="text-sm text-muted-foreground mb-4 font-medium">
+          </h1>
+          <p className="text-sm text-muted-foreground mb-1.5 font-medium">
             by <span className="text-primary">shokh</span>
-          </motion.p>
-          
-          <motion.p variants={item} className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Write, run, and collaborate on code in real time with your team.
+          </p>
+          <p className="text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
+            Write, run, and collaborate on code in real time.
             C++, Python, JavaScript, and 10+ languages.
-          </motion.p>
-        </motion.header>
+          </p>
+        </header>
 
         {/* Action Cards */}
-        <motion.div 
-          className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-24"
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
-          {/* Create Room Card */}
-          <motion.div variants={item}>
-            <MangaCard glowColor="pink" className="h-full">
-              <div className="space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-                    <Plus className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-space font-bold text-foreground">
-                      New Room
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Start a new coding session
-                    </p>
-                  </div>
-                </div>
-                
-                <Input
-                  placeholder="Room name..."
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl"
-                  onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
-                />
-                
-                <MangaButton
-                  variant="primary"
-                  className="w-full"
-                  size="lg"
-                  onClick={handleCreateRoom}
-                  disabled={isCreating}
-                >
-                  {isCreating ? "Creating..." : "Create Room"}
-                  <ArrowRight className="h-4 w-4" />
-                </MangaButton>
+        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-16">
+          <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+                <Plus className="h-4 w-4 text-primary" />
               </div>
-            </MangaCard>
-          </motion.div>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">New Room</h2>
+                <p className="text-xs text-muted-foreground">Start a coding session</p>
+              </div>
+            </div>
+            <Input
+              placeholder="Room name..."
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              className="h-9 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
+            />
+            <Button className="w-full h-9 text-sm" onClick={handleCreateRoom} disabled={isCreating}>
+              {isCreating ? "Creating..." : "Create Room"}
+              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+            </Button>
+          </div>
 
-          {/* Join Room Card */}
-          <motion.div variants={item}>
-            <MangaCard glowColor="blue" className="h-full">
-              <div className="space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center">
-                    <LogIn className="h-5 w-5 text-secondary" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-space font-bold text-foreground">
-                      Join Room
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Connect to an existing room
-                    </p>
-                  </div>
-                </div>
-                
-                <Input
-                  placeholder="Room ID or full link..."
-                  value={joinRoomId}
-                  onChange={(e) => setJoinRoomId(e.target.value)}
-                  className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground/50 h-11 rounded-xl"
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-                />
-                
-                <MangaButton
-                  variant="secondary"
-                  className="w-full"
-                  size="lg"
-                  onClick={handleJoinRoom}
-                >
-                  Join
-                  <ArrowRight className="h-4 w-4" />
-                </MangaButton>
+          <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+                <LogIn className="h-4 w-4 text-primary" />
               </div>
-            </MangaCard>
-          </motion.div>
-        </motion.div>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Join Room</h2>
+                <p className="text-xs text-muted-foreground">Connect to existing room</p>
+              </div>
+            </div>
+            <Input
+              placeholder="Room ID or link..."
+              value={joinRoomId}
+              onChange={(e) => setJoinRoomId(e.target.value)}
+              className="h-9 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
+            />
+            <Button variant="secondary" className="w-full h-9 text-sm" onClick={handleJoinRoom}>
+              Join <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+            </Button>
+          </div>
+        </div>
 
         {/* Features */}
-        <motion.div
-          className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-20"
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
-          {features.map((feature, index) => (
-            <motion.div key={index} variants={item}>
-              <MangaCard glowColor={feature.color} className="text-center py-8">
-                <div className="inline-flex w-14 h-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/10 mb-5">
-                  <feature.icon className="h-7 w-7 text-primary" />
-                </div>
-                <h3 className="text-base font-space font-bold text-foreground mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </MangaCard>
-            </motion.div>
+        <div className="grid sm:grid-cols-3 gap-3 max-w-3xl mx-auto mb-14">
+          {features.map((feature, i) => (
+            <div key={i} className="bg-card border border-border rounded-lg p-5 text-center">
+              <div className="inline-flex w-10 h-10 items-center justify-center rounded-md bg-primary/10 mb-3">
+                <feature.icon className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground mb-1">{feature.title}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">{feature.description}</p>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Supported Languages */}
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-        >
-          <p className="text-xs text-muted-foreground mb-4 uppercase tracking-widest font-medium">
-            Supported languages
-          </p>
-          <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+        {/* Languages */}
+        <div className="text-center">
+          <p className="text-[10px] text-muted-foreground mb-3 uppercase tracking-widest font-medium">Supported languages</p>
+          <div className="flex flex-wrap justify-center gap-1.5 max-w-xl mx-auto">
             {["C++", "Python", "JavaScript", "TypeScript", "Java", "Go", "Rust", "PHP", "Ruby", "C#", "C"].map((lang) => (
-              <motion.span
+              <span
                 key={lang}
-                className="px-3 py-1.5 text-xs font-jetbrains rounded-lg bg-muted/30 text-muted-foreground border border-border/50 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all duration-300 cursor-default"
-                whileHover={{ scale: 1.05 }}
+                className="px-2.5 py-1 text-[11px] font-jetbrains rounded-md bg-secondary text-muted-foreground border border-border hover:text-foreground hover:border-primary/30 transition-colors duration-150 cursor-default"
               >
                 {lang}
-              </motion.span>
+              </span>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-8 relative z-10">
-        <div className="container mx-auto px-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary/60" />
-            <span className="font-space font-semibold text-foreground/80 text-sm">CodeForge</span>
+      <footer className="border-t border-border py-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Code className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-semibold text-foreground/70 text-xs">CodeForge</span>
           </div>
-          <p className="text-muted-foreground text-xs">
-            by <span className="text-primary/80 font-medium">shokh</span> -
-            Real-time collaborative coding platform
+          <p className="text-muted-foreground text-[11px]">
+            by <span className="text-primary/70 font-medium">shokh</span> — Real-time collaborative coding platform
           </p>
         </div>
       </footer>
 
-      {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
