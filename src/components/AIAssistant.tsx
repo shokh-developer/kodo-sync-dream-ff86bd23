@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { MangaButton } from "./MangaButton";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -688,7 +688,7 @@ Rules:
                     <Bot className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-orbitron font-bold flex items-center gap-2">
+                    <h3 className="font-semibold flex items-center gap-2">
                       CodeForge AI
                       <span className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold bg-secondary text-secondary-foreground">
                         Free
@@ -903,14 +903,13 @@ Rules:
                   className="flex-1 bg-background/50"
                   disabled={isLoading}
                 />
-                <MangaButton
+                <Button
                   type="submit"
-                  variant="primary"
                   size="icon"
                   disabled={isLoading || !input.trim()}
                 >
                   <Send className="h-4 w-4" />
-                </MangaButton>
+                </Button>
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
                 Tip: try "create index.html" or "optimize this code"
