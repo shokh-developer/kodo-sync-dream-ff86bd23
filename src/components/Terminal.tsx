@@ -54,7 +54,17 @@ const getLanguageFromExt = (ext: string): string => {
   return map[ext] || "plaintext";
 };
 
-const Terminal = ({ isOpen, onToggle, code, language, files, activeFile }: TerminalProps) => {
+const Terminal = ({ isOpen, onToggle, code, language: rawLanguage, files, activeFile }: TerminalProps) => {
+  // Detect real language from file extension if stored as plaintext
+  const language = (() => {
+    if (rawLanguage && rawLanguage !== "plaintext") return rawLanguage;
+    if (activeFile?.name) {
+      const ext = activeFile.name.split('.').pop()?.toLowerCase() || '';
+      const detected = getLanguageFromExt(ext);
+      if (detected !== "plaintext") return detected;
+    }
+    return rawLanguage;
+  })();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showInputDialog, setShowInputDialog] = useState(false);
