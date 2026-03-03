@@ -34,9 +34,17 @@ const RoomChat = ({ roomId }: RoomChatProps) => {
     if (!roomId) return;
     const fetchMessages = async () => {
       const { data } = await supabase.from("chat_messages")
-        .select(`*, profile:profiles!chat_messages_user_id_fkey(display_name, avatar_url)`)
+        .select(`*`)
         .eq("room_id", roomId).order("created_at", { ascending: true }).limit(100);
-      if (data) setMessages(data.map(msg => ({ ...msg, profile: Array.isArray(msg.profile) ? msg.profile[0] : msg.profile })));
+      if (data) {
+        // Fetch profiles for all unique user_ids
+        const userIds = [...new Set(data.map(m => m.user_id))];
+        const { data: profiles } = await supabase.from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", userIds);
+        const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+        setMessages(data.map(msg => ({ ...msg, profile: profileMap.get(msg.user_id) || null })));
+      }
     };
     fetchMessages();
     const channel = supabase.channel(`chat:${roomId}`)
