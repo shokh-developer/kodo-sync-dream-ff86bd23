@@ -154,6 +154,24 @@ const Terminal = ({ isOpen, onToggle, code, language: rawLanguage, files, active
 
     if (mainHtml) {
       let result = mainHtml;
+      
+      // Check if HTML uses module scripts (Vite/React project) - render as-is without injecting other files
+      const hasModuleScript = /&lt;script\s[^>]*type\s*=\s*["']module["']/i.test(result) || /<script\s[^>]*type\s*=\s*["']module["']/i.test(result);
+      
+      if (hasModuleScript) {
+        // Strip the module script tags since they won't resolve in blob URL
+        result = result.replace(/<script\s[^>]*type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '');
+        // Add a simple message in body
+        const msg = `<div style="padding:40px;font-family:Inter,system-ui,sans-serif;text-align:center;color:#94a3b8">
+          <h2 style="color:#e2e8f0;margin-bottom:12px">CODEFORGE</h2>
+          <p>Bu fayl Vite/React loyihasi uchun. Mustaqil HTML sahifa yarating preview ko'rish uchun.</p>
+          <p style="margin-top:8px;font-size:13px;opacity:0.7">Masalan: &lt;h1&gt;Hello World&lt;/h1&gt; yozing</p>
+        </div>`;
+        if (result.includes('<body>')) result = result.replace('<body>', `<body>${msg}`);
+        else if (result.includes('</body>')) result = result.replace('</body>', `${msg}</body>`);
+        return wrapWithPreviewShell(result, allCode);
+      }
+      
       if (allCss) {
         const cssTag = `<style>\n${allCss}\n</style>`;
         if (result.includes('</head>')) result = result.replace('</head>', `${cssTag}\n</head>`);
