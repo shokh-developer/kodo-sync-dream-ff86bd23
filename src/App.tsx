@@ -10,6 +10,7 @@ import Room from "./pages/Room";
 import Profile from "./pages/Profile";
 import MyRooms from "./pages/MyRooms";
 import Settings from "./pages/Settings";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
