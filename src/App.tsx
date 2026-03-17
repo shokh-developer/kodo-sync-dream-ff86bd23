@@ -40,6 +40,7 @@ const App = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/my-rooms" element={<MyRooms />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
